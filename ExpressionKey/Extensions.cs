@@ -35,7 +35,7 @@ namespace ExpressionKey
             Expression<Func<T, U, bool>> joinExpression)
         {
             var member = MemberExtractor.ExtractSingleMember(property);
-            var setter = typeof(T).CreatePropertySetter<T, U>(member.Member.Name);
+            var setter = property.Parameters[0].Type.CreatePropertySetter<T, U>(member.Member.Name);
 
             var collection = child as ICollection<T> ?? child.ToList();
             var lookup = collection.ToExpressionKeyLookup(joinExpression);
