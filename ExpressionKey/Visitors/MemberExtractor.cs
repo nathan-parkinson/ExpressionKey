@@ -17,12 +17,12 @@ namespace ExpressionKey.Visitors
 
             if(visitor._members.Count == 0)
             {
-                throw new ArgumentNullException();
+                throw new ArgumentNullException(nameof(expr), "No MemberExpression nodes found");
             }
 
             if(visitor._members.Count > 1)
             {
-                throw new InvalidOperationException();
+                throw new InvalidOperationException("More than 1 MemberExpression nodes found");
             }
 
             return visitor._members.First();
