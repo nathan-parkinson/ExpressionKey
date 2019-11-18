@@ -44,6 +44,7 @@ namespace ExpressionKey
             {
                 foreach (var parentItem in parent)
                 {
+                    //TODO look into whether below should be lookup.GetMatches(parentItem).Single()
                     foreach (var matchingChild in lookup.GetMatches(parentItem))
                     {
                         //set item to match.property
@@ -65,13 +66,45 @@ namespace ExpressionKey
         }
 
 
-        public static void SetReferences<T, U>(
-            this IEnumerable<T> pool1,
+        public static IEnumerable<T> SetReferences<T, U>(
+            this IEnumerable<T> child,
             Expression<Func<T, IEnumerable<U>>> property,
-            ICollection<U> pool2,
+            IEnumerable<U> parent,
             Expression<Func<T, U, bool>> joinExpression)
         {
+            var member = MemberExtractor.ExtractSingleMember(property);
+            var setter = typeof(T).CreateCollectionPropertySetter<T, U>(member.Member.Name, member.Type);
 
+            var collection = child as ICollection<T> ?? child.ToList();
+            var lookup = collection.ToExpressionKeyLookup(joinExpression);
+
+            var ifnullSetter = typeof(T).CreatePropertySetup<T, U>(member.Member.Name);
+
+            if (lookup != null)
+            {
+                foreach (var parentItem in parent)
+                {
+                    foreach (var matchingChild in lookup.GetMatches(parentItem))
+                    {
+                        ifnullSetter(matchingChild);
+                        //set item to match.property
+                        setter(matchingChild, parentItem);
+                    }
+                }
+            }
+            //fallback to looping through when no hashCode key can be created
+            else
+            {
+                var func = joinExpression.Compile();
+                foreach (var childItem in child)
+                {
+                    ifnullSetter(childItem);
+
+                    var matchingParent = parent.FirstOrDefault(x => func(childItem, x));
+                    setter(childItem, matchingParent);
+                }
+            }
+            return collection;
         }
 
 
