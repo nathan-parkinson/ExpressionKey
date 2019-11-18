@@ -16,4 +16,8 @@
     <ProjectReference Include="..\ExpressionKey\ExpressionKey.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="ReflectionExtensionTests\" />
+  </ItemGroup>
+
 </Project>
