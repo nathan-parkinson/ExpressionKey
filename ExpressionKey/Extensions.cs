@@ -23,26 +23,26 @@ namespace ExpressionKey
             return lookup;
         }
 
-        // T = Child
-        // U = Parent
-        // property = Child.Parent
-        // JoinExpression = (c, p) => c.ParentId == p.Id
+        // T = ProductLines
+        // U = Order
+        // property = ProductLine.Order
+        // JoinExpression = (c, p) => c.OrderId == p.OrderId
         //TODO find better names for the parameters
         public static IEnumerable<T> SetReferences<T, U>(
-            this IEnumerable<T> child,
+            this IEnumerable<T> productLines,
             Expression<Func<T, U>> property,
-            IEnumerable<U> parent,
+            IEnumerable<U> orders,
             Expression<Func<T, U, bool>> joinExpression)
         {
             var member = MemberExtractor.ExtractSingleMember(property);
             var setter = property.Parameters[0].Type.CreatePropertySetter<T, U>(member.Member.Name);
 
-            var collection = child as ICollection<T> ?? child.ToList();
+            var collection = productLines as ICollection<T> ?? productLines.ToList();
             var lookup = collection.ToExpressionKeyLookup(joinExpression);
 
             if (lookup != null)
             {
-                foreach (var parentItem in parent)
+                foreach (var parentItem in orders)
                 {
                     //TODO look into whether below should be lookup.GetMatches(parentItem).Single()
                     foreach (var matchingChild in lookup.GetMatches(parentItem))
@@ -56,9 +56,9 @@ namespace ExpressionKey
             else
             {
                 var func = joinExpression.Compile();
-                foreach (var childItem in child)
+                foreach (var childItem in productLines)
                 {
-                    var matchingParent = parent.FirstOrDefault(x => func(childItem, x));
+                    var matchingParent = orders.FirstOrDefault(x => func(childItem, x));
                     setter(childItem, matchingParent);
                 }
             }
@@ -66,11 +66,11 @@ namespace ExpressionKey
         }
 
 
-        public static IEnumerable<T> SetReferences<T, U>(
+        public static IEnumerable<T> SetReferences<T, V, U>(
             this IEnumerable<T> child,
-            Expression<Func<T, IEnumerable<U>>> property,
+            Expression<Func<T, V>> property,
             IEnumerable<U> parent,
-            Expression<Func<T, U, bool>> joinExpression)
+            Expression<Func<T, U, bool>> joinExpression) where V : IEnumerable<U>
         {
             var member = MemberExtractor.ExtractSingleMember(property);
             var setter = typeof(T).CreateCollectionPropertySetter<T, U>(member.Member.Name, member.Type);
