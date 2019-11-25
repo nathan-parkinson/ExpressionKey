@@ -10,17 +10,18 @@ using System.Text;
 
 namespace ExpressionKey
 {
-    public class KeyBuilder
+    //Make this an abstract type to be implememented depending on the data source
+    public abstract class KeyBuilder
     {
-        internal IEnumerable<Expression<Func<T, object>>> GetPrimaryKeys<T>()
-        {
-            return Enumerable.Empty<Expression<Func<T, object>>>();
-        }
-
-        internal IEnumerable<(MemberInfo member, LambdaExpression expression, LambdaExpression property)> GetForeignKeys<T>()
-        {
-            var tt = typeof(T);
-            return Enumerable.Empty<(MemberInfo, LambdaExpression, LambdaExpression)>();
-        }
+        public abstract IEnumerable<LambdaExpression> GetPrimaryKeys<T>();
+        public abstract IEnumerable<ForeignKey> GetForeignKeys<T>();
     }
+
+    public class ForeignKey
+    {
+        public MemberInfo Member { get; set; }
+        public LambdaExpression Expression { get; set; }
+        public LambdaExpression Property { get; set; }
+    }
+        
 }

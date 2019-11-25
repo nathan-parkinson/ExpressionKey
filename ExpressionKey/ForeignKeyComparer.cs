@@ -37,8 +37,8 @@ namespace ExpressionKey
         private static Func<T1, T2, bool> CreateMatchExpression<T1, T2>(ParameterExpression oldParam, List<Expression> leftExpressions, List<Expression> rightExpressions)
         {
             Expression buildExpr = null;
-            var param1 = Expression.Parameter(typeof(T1));
-            var param2 = Expression.Parameter(typeof(T2));
+            var param1 = Expression.Parameter(typeof(T1), "p1");
+            var param2 = Expression.Parameter(typeof(T2), "p2");
 
             for (int i = 0; i < leftExpressions.Count; i++)
             {

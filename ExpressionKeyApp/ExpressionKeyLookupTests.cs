@@ -32,7 +32,7 @@ namespace ExpressionKeyApp
             var lookup = children.ToExpressionKeyLookup(expr);
 
 
-            var matchedItems = children.SetReferences(c => c.Parent, people, expr);
+            children.SetReferences(c => c.Parent, people, expr);
             
             Expression<Func<Person, PersonChild, bool>> expr2 = (p, pc) => pc.ParentId == p.PersonId;
             var lookup2 = people.ToExpressionKeyLookup(expr2);

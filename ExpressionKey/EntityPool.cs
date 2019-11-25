@@ -3,11 +3,12 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ExpressionKey
 {
     //Non Tread Safe
-    class EntityPool
+    public class EntityPool
     {
         internal readonly static ConcurrentDictionary<Type, ITypeHelper> _typeHelpers =
          new ConcurrentDictionary<Type, ITypeHelper>();
@@ -29,7 +30,7 @@ namespace ExpressionKey
         }
 
 
-        internal ISet<T> GetEntities<T>()
+        public ISet<T> GetEntities<T>()
         {
             var baseType = typeof(T);
             if (!_entityStore.ContainsKey(baseType))
@@ -41,21 +42,25 @@ namespace ExpressionKey
             return entities;
         }
 
-        internal void AddEntities<T>(IEnumerable<T> entities)
+        public void AddEntities<T>(IEnumerable<T> entities)
         {
             var type = typeof(T);
             var pkFields = _keyBuilder.GetPrimaryKeys<T>();
 
-            var data = _entityStore.GetOrAdd(type, _ => new HashSet<T>(new PrimaryKeyComparer<T>(pkFields))) as ISet<T>;
+            _entityStore.AddOrUpdate(type, _ => new HashSet<T>(entities, new PrimaryKeyComparer<T>(pkFields)),
+                (_, o) => 
+                {
+                    
+                    var oldHash = o as HashSet<T>;
+                    oldHash.UnionWith(entities);
+                    return oldHash;
+                });
+
             if(!_typeHelpers.ContainsKey(type))
             {
                 _typeHelpers.AddOrUpdate(type, CreateTypeHelper(type, _keyBuilder), (_, h) => h);
             }
 
-            foreach (var entity in entities)
-            {
-                data.Add(entity);
-            }
             MatchEntities();
         }
 

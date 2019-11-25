@@ -23,17 +23,25 @@ namespace ExpressionKey
             return lookup;
         }
 
+
+
+
         // T = ProductLines
         // U = Order
         // property = ProductLine.Order
         // JoinExpression = (c, p) => c.OrderId == p.OrderId
         //TODO find better names for the parameters
-        public static IEnumerable<T> SetReferences<T, U>(
+        public static void SetReferences<T, U>(
             this IEnumerable<T> productLines,
             Expression<Func<T, U>> property,
             IEnumerable<U> orders,
             Expression<Func<T, U, bool>> joinExpression)
         {
+            if (productLines == null || orders == null)
+            {
+                return;
+            }
+
             var member = MemberExtractor.ExtractSingleMember(property);
             var setter = property.Parameters[0].Type.CreatePropertySetter<T, U>(member.Member.Name);
 
@@ -62,16 +70,21 @@ namespace ExpressionKey
                     setter(childItem, matchingParent);
                 }
             }
-            return collection;
+            //return collection;
         }
 
 
-        public static IEnumerable<T> SetReferences<T, V, U>(
-            this IEnumerable<T> child,
-            Expression<Func<T, V>> property,
-            IEnumerable<U> parent,
-            Expression<Func<T, U, bool>> joinExpression) where V : IEnumerable<U>
+        public static void SetReferences<T, V, U>(
+        this IEnumerable<T> child,
+        Expression<Func<T, V>> property,
+        IEnumerable<U> parent,
+        Expression<Func<T, U, bool>> joinExpression) where V : IEnumerable<U>
         {
+            if(child == null || parent == null)
+            {
+                return;
+            }
+
             var member = MemberExtractor.ExtractSingleMember(property);
             var setter = typeof(T).CreateCollectionPropertySetter<T, U>(member.Member.Name, member.Type);
 
@@ -104,7 +117,7 @@ namespace ExpressionKey
                     setter(childItem, matchingParent);
                 }
             }
-            return collection;
+            //return collection;
         }
 
 
