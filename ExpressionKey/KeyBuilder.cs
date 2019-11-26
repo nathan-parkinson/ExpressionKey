@@ -13,8 +13,17 @@ namespace ExpressionKey
     //Make this an abstract type to be implememented depending on the data source
     public abstract class KeyBuilder
     {
-        public abstract IEnumerable<LambdaExpression> GetPrimaryKeys<T>();
-        public abstract IEnumerable<ForeignKey> GetForeignKeys<T>();
+        protected readonly Dictionary<Type, List<ForeignKey>> ForeignKeyDict
+            = new Dictionary<Type, List<ForeignKey>>();
+
+        protected readonly Dictionary<Type, List<LambdaExpression>> PrimaryKeyDict
+            = new Dictionary<Type, List<LambdaExpression>>();
+
+        public virtual IEnumerable<ForeignKey> GetForeignKeys<T>() 
+            => ForeignKeyDict.GetValueOrDefault(typeof(T)) ?? Enumerable.Empty<ForeignKey>();
+
+        public virtual IEnumerable<LambdaExpression> GetPrimaryKeys<T>() 
+            => PrimaryKeyDict.GetValueOrDefault(typeof(T)) ?? Enumerable.Empty<LambdaExpression>();
     }
 
     public class ForeignKey

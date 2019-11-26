@@ -11,7 +11,7 @@ using System.Text;
 namespace ExpressionKey
 {
 
-    internal class TypeHelper<T> : ITypeHelper
+    internal class TypeHelper<T, TBase> : ITypeHelper
     {
         private static Dictionary<MemberInfo, Action<EntityPool>> memberSetters;
 
@@ -65,10 +65,8 @@ namespace ExpressionKey
             }
         }
 
-        Type GetBaseType()
-        {
-            throw new NotImplementedException();
-        }
+        public Type Type => typeof(T);
+        public Type BaseType => typeof(TBase);
 
         void ITypeHelper.SetReferences(EntityPool pool)
         {

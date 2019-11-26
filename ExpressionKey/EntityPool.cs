@@ -41,14 +41,14 @@ namespace ExpressionKey
             return entities.OfType<T>();
         }
 
-        public IEnumerable<T> GetEntities<T>()
-        {
-            return BaseTypeRouter<T>.GetEntities(this);
-        }
-
+        public IEnumerable<T> GetEntities<T>() => BaseTypeRouter<T>.GetEntities(this);
+        public void AddEntities<T>(IEnumerable<T> entities) => BaseTypeRouter<T>.AddEntities(this, entities);
+        
         internal void AddEntities<T, TBase>(IEnumerable<T> entities)
         {
             var baseType = typeof(TBase);
+            var type = typeof(T);
+
             var pkFields = _keyBuilder.GetPrimaryKeys<TBase>();
             var baseEntities = entities.Cast<TBase>();
 
@@ -61,37 +61,36 @@ namespace ExpressionKey
                     return oldHash;
                 });
 
-            //TODO ?maybe Make typeHelper for all types in the inheritance stack
-            if (!_typeHelpers.ContainsKey(baseType))
+
+            foreach(var modelType in type.GetAllBaseTypes())
             {
-                _typeHelpers.AddOrUpdate(baseType, CreateTypeHelper(baseType, _keyBuilder), (_, h) => h);
+                if (!_typeHelpers.ContainsKey(modelType))
+                {
+                    _typeHelpers.AddOrUpdate(modelType, CreateTypeHelper(modelType, baseType, _keyBuilder), (_, h) => h);
+                }
             }
 
             MatchEntities();
         }
 
-        public void AddEntities<T>(IEnumerable<T> entities)
+        private static ITypeHelper CreateTypeHelper(Type type, Type baseType, KeyBuilder keyBuilder)
         {
-            BaseTypeRouter<T>.AddEntities(this, entities);
-        }
-
-        private static ITypeHelper CreateTypeHelper(Type type, KeyBuilder keyBuilder)
-        {
-            Type generic = typeof(TypeHelper<>);
-            Type[] typeArgs = { type };
+            Type generic = typeof(TypeHelper<,>);
+            Type[] typeArgs = { type, baseType };
             Type constructed = generic.MakeGenericType(typeArgs);
 
             return Activator.CreateInstance(constructed, keyBuilder) as ITypeHelper;
         }
 
+
         private void MatchEntities()
         {
-            //TODO ?maybe loop through the typehelpers first and if _entityStore.ContainsKey do _entityStore[key].OfType<>()
-            foreach (var key in _entityStore.Keys)
+            foreach (var typeHelper in _typeHelpers)
             {
-                if (_typeHelpers.TryGetValue(key, out ITypeHelper typeHelper))
+                //is the below if really needed
+                if (_entityStore.ContainsKey(typeHelper.Value.BaseType))
                 {
-                    typeHelper.SetReferences(this);
+                    typeHelper.Value.SetReferences(this);
                 }
             }
         }

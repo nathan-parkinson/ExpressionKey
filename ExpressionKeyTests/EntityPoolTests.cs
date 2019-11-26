@@ -36,6 +36,130 @@ namespace ExpressionKeyTests
             Assert.IsTrue(children.All(c => c.Order.OrderId == c.OrderId));
         }
 
+
+        [Test]
+        public void MatchFromBaseTypeRelationshipTest()
+        {
+            var people = Enumerable.Range(1, 10).Select(z => new Order1
+            {
+                OrderId = z,
+                OrderDate = DateTime.Today.AddDays(z)
+            }).ToList();
+
+            var children = Enumerable.Range(1, 100).Select(z => new ProductLine
+            {
+                OrderId = (int)Math.Ceiling(z / 10.0f),
+                ProductCode = "Child " + z,
+                ProductLineId = z
+            }).ToList();
+
+
+            var pool = new EntityPool(new Builder());
+            pool.AddEntities(people);
+            pool.AddEntities(children);
+
+
+            Assert.IsTrue(people.All(x => x.ProductLines.All(c => c.OrderId == x.OrderId)));
+            Assert.IsTrue(children.All(c => c.Order.OrderId == c.OrderId));
+        }
+
+
+        [Test]
+        public void MatchFromTopLevelTypeRelationshipTest()
+        {
+            var people = Enumerable.Range(1, 10).Select(z => new Order1
+            {
+                OrderId = z,
+                OrderDate = DateTime.Today.AddDays(z)
+            }).ToList();
+
+            var links = Enumerable.Range(1, 10).Select(z => new LinkedClass1
+            {
+                OrderId = z,
+                Id = z * 2
+            }).ToList();
+
+
+            var children = Enumerable.Range(1, 100).Select(z => new ProductLine
+            {
+                OrderId = (int)Math.Ceiling(z / 10.0f),
+                ProductCode = "Child " + z,
+                ProductLineId = z
+            }).ToList();
+
+
+            var pool = new EntityPool(new Builder());
+            pool.AddEntities(people);
+            pool.AddEntities(children);
+            pool.AddEntities(links);
+
+            Assert.IsTrue(people.All(x => x.ProductLines.All(c => c.OrderId == x.OrderId)));
+            Assert.IsTrue(children.All(c => c.Order.OrderId == c.OrderId));
+            Assert.IsTrue(people.All(c => c.Link1.OrderId == c.OrderId));
+        }
+
+
+        [Test]
+        public void MatchFromMidLevelTypeRelationshipTest()
+        {
+            var people = Enumerable.Range(1, 10).Select(z => new Order2
+            {
+                OrderId = z,
+                OrderDate = DateTime.Today.AddDays(z)
+            }).ToList();
+
+            var links1 = Enumerable.Range(1, 10).Select(z => new LinkedClass2
+            {
+                OrderId = z,
+                Id = z * 2
+            }).ToList();
+
+
+            var links2 = Enumerable.Range(1, 10).Select(z => new LinkedClass1
+            {
+                OrderId = z,
+                Id = z * 2
+            }).ToList();
+
+
+            var children = Enumerable.Range(1, 100).Select(z => new ProductLine
+            {
+                OrderId = (int)Math.Ceiling(z / 10.0f),
+                ProductCode = "Child " + z,
+                ProductLineId = z
+            }).ToList();
+
+
+            var pool = new EntityPool(new Builder());
+            pool.AddEntities(people);
+            pool.AddEntities(children);
+            pool.AddEntities(links1);
+            pool.AddEntities(links2);
+
+            Assert.IsTrue(people.All(x => x.ProductLines.All(c => c.OrderId == x.OrderId)));
+            Assert.IsTrue(children.All(c => c.Order.OrderId == c.OrderId));
+            Assert.IsTrue(people.All(c => c.Link1.OrderId == c.OrderId));
+            Assert.IsTrue(people.All(c => c.Link2.OrderId == c.OrderId));
+        }
+
+
+        public class LinkedClass1 { public int Id { get; set; } public int OrderId { get; set; } }
+        public class LinkedClass2 { public int Id { get; set; } public int OrderId { get; set; } }
+        public class LinkedClass3 { public int Id { get; set; } public int OrderId { get; set; } }
+
+
+        public class Order2 : Order1
+        {
+            public LinkedClass2 Link2 { get; set; }
+        }
+
+
+
+        public class Order1 : Order
+        {
+            public LinkedClass1 Link1 { get; set; }
+        }
+
         public class Order
         {
             public int OrderId { get; set; }
@@ -54,15 +178,31 @@ namespace ExpressionKeyTests
 
         public class Builder : KeyBuilder
         {
-            Dictionary<Type, List<ForeignKey>> _fkDict = new Dictionary<Type, List<ForeignKey>>();
-            Dictionary<Type, List<LambdaExpression>> _pkDict = new Dictionary<Type, List<LambdaExpression>>();
-
             private Expression<Func<T, U>> Member<T, U>(Expression<Func<T, U>> expr) => expr;
             private Expression<Func<T, U, bool>> Join<T, U>(Expression<Func<T, U, bool>> expr) => expr;
 
             public Builder()
             {
-                _fkDict.Add(typeof(Order), new List<ForeignKey>{
+
+                ForeignKeyDict.Add(typeof(Order2), new List<ForeignKey>{
+                    new ForeignKey
+                {
+                    Member = typeof(Order2).GetMember(nameof(Order2.Link2)).First(),
+                    Property = Member<Order2, LinkedClass2>(o => o.Link2),
+                    Expression = Join<Order2, LinkedClass2>((o, p) => o.OrderId == p.OrderId)
+                }});
+
+
+                ForeignKeyDict.Add(typeof(Order1), new List<ForeignKey>{
+                    new ForeignKey
+                {
+                    Member = typeof(Order1).GetMember(nameof(Order1.Link1)).First(),
+                    Property = Member<Order1, LinkedClass1>(o => o.Link1),
+                    Expression = Join<Order1, LinkedClass1>((o, p) => o.OrderId == p.OrderId)
+                }});
+
+
+                ForeignKeyDict.Add(typeof(Order), new List<ForeignKey>{
                     new ForeignKey
                 {
                     Member = typeof(Order).GetMember(nameof(Order.ProductLines)).First(),
@@ -70,7 +210,7 @@ namespace ExpressionKeyTests
                     Expression = Join<Order, ProductLine>((o, p) => o.OrderId == p.OrderId)
                 }});
 
-                _fkDict.Add(typeof(ProductLine), new List<ForeignKey>{
+                ForeignKeyDict.Add(typeof(ProductLine), new List<ForeignKey>{
                     new ForeignKey
                 {
                     Member = typeof(ProductLine).GetMember(nameof(ProductLine.Order)).First(),
@@ -79,21 +219,38 @@ namespace ExpressionKeyTests
                 }});
 
 
-                _pkDict.Add(typeof(Order), new List<LambdaExpression>
+
+
+
+                PrimaryKeyDict.Add(typeof(Order), new List<LambdaExpression>
                 {
                    Member<Order, int>(o => o.OrderId)
                 });
 
 
-                _pkDict.Add(typeof(ProductLine), new List<LambdaExpression>
+                PrimaryKeyDict.Add(typeof(ProductLine), new List<LambdaExpression>
                 {
                     Member<ProductLine, int>(o => o.ProductLineId)
                 });
+
+                PrimaryKeyDict.Add(typeof(LinkedClass1), new List<LambdaExpression>
+                {
+                    Member<LinkedClass1, int>(o => o.Id)
+                });
+
+
+                PrimaryKeyDict.Add(typeof(LinkedClass2), new List<LambdaExpression>
+                {
+                    Member<LinkedClass2, int>(o => o.Id)
+                });
+
+
+                PrimaryKeyDict.Add(typeof(LinkedClass3), new List<LambdaExpression>
+                {
+                    Member<LinkedClass3, int>(o => o.Id)
+                });
+
             }
-
-            public override IEnumerable<ForeignKey> GetForeignKeys<T>() => _fkDict[typeof(T)];
-
-            public override IEnumerable<LambdaExpression> GetPrimaryKeys<T>() => _pkDict[typeof(T)];
         }
     }
 }

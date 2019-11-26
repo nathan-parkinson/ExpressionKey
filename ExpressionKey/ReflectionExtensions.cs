@@ -221,5 +221,22 @@ namespace ExpressionKey
 
             return type;
         }
+
+
+        internal static IEnumerable<Type> GetAllBaseTypes(this Type type)
+        {
+            var types = new List<Type> { type };
+            var baseType = type.BaseType;
+            var objType = typeof(object);
+
+            while (baseType != objType && baseType != typeof(ValueType) && !type.IsInterface && !baseType.IsInterface)
+            {
+                type = baseType;
+                types.Add(type);
+                baseType = type.BaseType;
+            }
+
+            return types;
+        }
     }
 }
