@@ -207,5 +207,19 @@ namespace ExpressionKey
                     return typeof(Collection<>);
             }
         }
+
+        internal static Type GetRealBaseType(this Type type)
+        {
+            var baseType = type.BaseType;
+            var objType = typeof(object);
+
+            while (baseType != objType && baseType != typeof(ValueType) && !type.IsInterface && !baseType.IsInterface)
+            {
+                type = baseType;
+                baseType = type.BaseType;
+            }
+
+            return type;
+        }
     }
 }

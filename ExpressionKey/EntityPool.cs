@@ -29,39 +29,50 @@ namespace ExpressionKey
             _keyBuilder = keyBuilder;
         }
 
-
-        public ISet<T> GetEntities<T>()
+        internal IEnumerable<T> GetEntities<T, TBase>()
         {
-            var baseType = typeof(T);
+            var baseType = typeof(TBase);
             if (!_entityStore.ContainsKey(baseType))
             {
                 return null;
             }
 
-            var entities = _entityStore[baseType] as ISet<T>;
-            return entities;
+            var entities = _entityStore[baseType] as ISet<TBase>;
+            return entities.OfType<T>();
+        }
+
+        public IEnumerable<T> GetEntities<T>()
+        {
+            return BaseTypeRouter<T>.GetEntities(this);
+        }
+
+        internal void AddEntities<T, TBase>(IEnumerable<T> entities)
+        {
+            var baseType = typeof(TBase);
+            var pkFields = _keyBuilder.GetPrimaryKeys<TBase>();
+            var baseEntities = entities.Cast<TBase>();
+
+            _entityStore.AddOrUpdate(baseType, _ => new HashSet<TBase>(baseEntities, new PrimaryKeyComparer<TBase>(pkFields)),
+                (_, o) =>
+                {
+
+                    var oldHash = o as HashSet<TBase>;
+                    oldHash.UnionWith(baseEntities);
+                    return oldHash;
+                });
+
+            //TODO ?maybe Make typeHelper for all types in the inheritance stack
+            if (!_typeHelpers.ContainsKey(baseType))
+            {
+                _typeHelpers.AddOrUpdate(baseType, CreateTypeHelper(baseType, _keyBuilder), (_, h) => h);
+            }
+
+            MatchEntities();
         }
 
         public void AddEntities<T>(IEnumerable<T> entities)
         {
-            var type = typeof(T);
-            var pkFields = _keyBuilder.GetPrimaryKeys<T>();
-
-            _entityStore.AddOrUpdate(type, _ => new HashSet<T>(entities, new PrimaryKeyComparer<T>(pkFields)),
-                (_, o) => 
-                {
-                    
-                    var oldHash = o as HashSet<T>;
-                    oldHash.UnionWith(entities);
-                    return oldHash;
-                });
-
-            if(!_typeHelpers.ContainsKey(type))
-            {
-                _typeHelpers.AddOrUpdate(type, CreateTypeHelper(type, _keyBuilder), (_, h) => h);
-            }
-
-            MatchEntities();
+            BaseTypeRouter<T>.AddEntities(this, entities);
         }
 
         private static ITypeHelper CreateTypeHelper(Type type, KeyBuilder keyBuilder)
@@ -75,6 +86,7 @@ namespace ExpressionKey
 
         private void MatchEntities()
         {
+            //TODO ?maybe loop through the typehelpers first and if _entityStore.ContainsKey do _entityStore[key].OfType<>()
             foreach (var key in _entityStore.Keys)
             {
                 if (_typeHelpers.TryGetValue(key, out ITypeHelper typeHelper))
