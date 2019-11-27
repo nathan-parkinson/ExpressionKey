@@ -13,55 +13,52 @@ namespace ExpressionKey
 
     internal class TypeHelper<T, TBase> : ITypeHelper
     {
-        private static Dictionary<MemberInfo, Action<EntityPool>> memberSetters;
+        private Dictionary<MemberInfo, Action<EntityPool>> _memberSetters;
 
         public TypeHelper(KeyBuilder builder)
         {
-            if (memberSetters == null)
+            _memberSetters = new Dictionary<MemberInfo, Action<EntityPool>>();
+            //set member setters
+            var fkList = builder.GetRelationships<T>();
+            foreach (var fk in fkList.Where(x => x.Expression.Body.Type == typeof(bool) &&
+                                                    x.Expression.Parameters.Count == 2))
             {
-                memberSetters = new Dictionary<MemberInfo, Action<EntityPool>>();
-                //set member setters
-                var fkList = builder.GetForeignKeys<T>();
-                foreach (var fk in fkList.Where(x => x.Expression.Body.Type == typeof(bool) && 
-                                                        x.Expression.Parameters.Count == 2))
+                var paramPool = Expression.Parameter(typeof(EntityPool));
+                var param = Expression.Parameter(typeof(T), "source");
+
+                var paramFuncType = typeof(Func<,>).MakeGenericType(typeof(T), fk.Member.GetMemberUnderlyingType());
+                var paramExprType = typeof(Expression<>).MakeGenericType(paramFuncType);
+
+
+                var propertyAccess = Expression.PropertyOrField(param, fk.Member.Name);
+
+                var entities = Expression.Call(paramPool, nameof(EntityPool.GetEntities), new Type[] { typeof(T) });
+                var otherEntities = Expression.Call(paramPool, nameof(EntityPool.GetEntities), new Type[]
                 {
-                    var paramPool = Expression.Parameter(typeof(EntityPool));
-                    var param = Expression.Parameter(typeof(T), "source");
-
-                    var paramFuncType = typeof(Func<,>).MakeGenericType(typeof(T), fk.Member.GetMemberUnderlyingType());
-                    var paramExprType = typeof(Expression<>).MakeGenericType(paramFuncType);
-
-
-                    var propertyAccess = Expression.PropertyOrField(param, fk.Member.Name);
-
-                    var entities = Expression.Call(paramPool, nameof(EntityPool.GetEntities), new Type[] { typeof(T) });
-                    var otherEntities = Expression.Call(paramPool, nameof(EntityPool.GetEntities), new Type[]
-                    {
                         fk.Expression.Parameters[1].Type
-                    });
+                });
 
 
-                    var typeParameters = new List<Type>
+                var typeParameters = new List<Type>
                     {
                         typeof(T),
                         fk.Property.Body.Type
                     };
 
-                    //if IEnurmeable add anoter type parameter so we call the right method
-                    if(fk.Property.Body.Type.IsIEnumerable())
-                    {
-                        typeParameters.Add(fk.Property.Body.Type.GetTypeToUse());
-                    }
-
-                    var setReferences = Expression.Call(typeof(Extensions), nameof(Extensions.SetReferences),
-                                                typeParameters.ToArray() , entities, fk.Property, otherEntities,
-                                                fk.Expression);
-
-                    var lamdba = Expression.Lambda<Action<EntityPool>>(setReferences, paramPool);
-                    var action = lamdba.Compile();
-
-                    memberSetters.Add(fk.Member, action);
+                //if IEnurmeable add anoter type parameter so we call the right method
+                if (fk.Property.Body.Type.IsIEnumerable())
+                {
+                    typeParameters.Add(fk.Property.Body.Type.GetTypeToUse());
                 }
+
+                var setReferences = Expression.Call(typeof(Extensions), nameof(Extensions.SetReferences),
+                                            typeParameters.ToArray(), entities, fk.Property, otherEntities,
+                                            fk.Expression);
+
+                var lamdba = Expression.Lambda<Action<EntityPool>>(setReferences, paramPool);
+                var action = lamdba.Compile();
+
+                _memberSetters.Add(fk.Member, action);
             }
         }
 
@@ -70,7 +67,7 @@ namespace ExpressionKey
 
         void ITypeHelper.SetReferences(EntityPool pool)
         {
-            foreach (var setter in memberSetters)
+            foreach (var setter in _memberSetters)
             {
                 setter.Value(pool);
             }

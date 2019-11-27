@@ -13,7 +13,7 @@ namespace ExpressionKey
 
         internal ExpressionKeyLookup(IEnumerable<T> items, Expression<Func<T, U, bool>> expr)
         {
-            var comparer = new ForeignKeyComparer<T, U>(expr);
+            var comparer = new RelationshipComparer<T, U>(expr);
             IsExpressionInvalid = comparer.IsExpressionInvalid;
 
             if (!comparer.IsExpressionInvalid)

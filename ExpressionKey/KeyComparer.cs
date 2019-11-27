@@ -6,12 +6,12 @@ using System.Linq.Expressions;
 
 namespace ExpressionKey
 {
-    public class PrimaryKeyComparer<TKey> : IEqualityComparer<TKey>
+    public class KeyComparer<TKey> : IEqualityComparer<TKey>
     {
         private readonly Func<TKey, TKey, bool> _keyKeyMatcher;
         private readonly Func<TKey, int> _keyHasherFunc;
 
-        public PrimaryKeyComparer(IEnumerable<LambdaExpression> expressions)
+        public KeyComparer(IEnumerable<LambdaExpression> expressions)
         {
             var keyExpressions = expressions.ToList();
 

@@ -9,7 +9,7 @@ namespace ExpressionKey.Cache
     {
         public BaseTypeSet(IEnumerable<Expression<Func<TBase, object>>> pkExpresssions)
         { 
-            Data = new HashSet<TBase>(new PrimaryKeyComparer<TBase>(pkExpresssions));
+            Data = new HashSet<TBase>(new KeyComparer<TBase>(pkExpresssions));
         }
 
         public HashSet<TBase> Data { get; }

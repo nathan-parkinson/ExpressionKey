@@ -8,9 +8,9 @@ using System.Text;
 
 namespace ExpressionKey
 {
-    public class ForeignKeyComparer<TKey, TValue> : IEqualityComparer<ExpressionKey<TKey, TValue>>
+    public class RelationshipComparer<TKey, TValue> : IEqualityComparer<ExpressionKey<TKey, TValue>>
     {
-        public ForeignKeyComparer(Expression<Func<TKey, TValue, bool>> expression)
+        public RelationshipComparer(Expression<Func<TKey, TValue, bool>> expression)
         {
             var keyParam = expression.Parameters[0];
             var valueParam = expression.Parameters[1];
