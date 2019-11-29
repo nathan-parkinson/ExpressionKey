@@ -9,6 +9,22 @@ namespace ExpressionKey
     {
         internal static readonly Func<EntityPool, IEnumerable<T>> GetEntities = BuildBaseGetEntities();
         internal static readonly Action<EntityPool, IEnumerable<T>> AddEntities = BuildBaseAddEntities();
+        internal static readonly Func<EntityPool, IEnumerable<T>, List<T>> ConsolidatedEntities = BuildBaseConsolidatedEntities();
+
+        private static Func<EntityPool, IEnumerable<T>, List<T>> BuildBaseConsolidatedEntities()
+        {
+            var type = typeof(T);
+            var baseType = type.GetRealBaseType();
+
+            var argPool = Expression.Parameter(typeof(EntityPool), "entityPool");
+            var arg = Expression.Parameter(typeof(IEnumerable<T>), "entities");
+            var call = Expression.Call(argPool, nameof(EntityPool.ConsolidatedEntities), new Type[] { type, baseType }, arg);
+
+            var lambda = Expression.Lambda<Func<EntityPool, IEnumerable<T>, List<T>>>(call, argPool, arg);
+            var func = lambda.Compile();
+            return func;
+        }
+
 
         private static Func<EntityPool, IEnumerable<T>> BuildBaseGetEntities()
         {

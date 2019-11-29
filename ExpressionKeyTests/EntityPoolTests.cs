@@ -27,7 +27,7 @@ namespace ExpressionKeyTests
             }).ToList();
 
 
-            var pool = new EntityPool(new TestBuilder());
+            var pool = new TestBuilder().CreateEntityPool();
             pool.AddEntities(people);
             pool.AddEntities(children);
 
@@ -54,7 +54,7 @@ namespace ExpressionKeyTests
             }).ToList();
 
 
-            var pool = new EntityPool(new TestBuilder());
+            var pool = new TestBuilder().CreateEntityPool();
             pool.AddEntities(people);
             pool.AddEntities(children);
 
@@ -88,7 +88,7 @@ namespace ExpressionKeyTests
             }).ToList();
 
 
-            var pool = new EntityPool(new TestBuilder());
+            var pool = new TestBuilder().CreateEntityPool();
             pool.AddEntities(people);
             pool.AddEntities(children);
             pool.AddEntities(links);
@@ -130,7 +130,7 @@ namespace ExpressionKeyTests
             }).ToList();
 
 
-            var pool = new EntityPool(new TestBuilder());
+            var pool = new TestBuilder().CreateEntityPool();
             pool.AddEntities(people);
             pool.AddEntities(children);
             pool.AddEntities(links1);
@@ -157,7 +157,7 @@ namespace ExpressionKeyTests
                 Id = z * 2
             }).ToList();
 
-            var pool = new EntityPool(new TestBuilder());
+            var pool = new TestBuilder().CreateEntityPool();
             pool.AddEntities(people.OfType<Order>());
             pool.AddEntities(links);
 

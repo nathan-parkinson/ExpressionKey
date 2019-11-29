@@ -6,10 +6,8 @@ using System.Threading.Tasks;
 
 namespace ExpressionKey.Cache
 {
-
     internal class PropertySetterKey : IEquatable<PropertySetterKey>
     {
-
         internal PropertySetterKey(Type elementType, Type valueType, string propertyName)
         {
             ElementType = elementType;
@@ -28,14 +26,6 @@ namespace ExpressionKey.Cache
                    EqualityComparer<Type>.Default.Equals(ValueType, key.ValueType) &&
                    PropertyName == key.PropertyName;
 
-        public override int GetHashCode()
-        {
-            var hashCode = -593368060;
-            hashCode = hashCode * -1521134295 + EqualityComparer<Type>.Default.GetHashCode(ElementType);
-            hashCode = hashCode * -1521134295 + EqualityComparer<Type>.Default.GetHashCode(ValueType);
-            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(PropertyName);
-            return hashCode;
-        }        
+        public override int GetHashCode() => HashCode.Combine(ElementType, ValueType, PropertyName);
     }
-
 }

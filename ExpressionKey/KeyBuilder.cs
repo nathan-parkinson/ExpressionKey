@@ -28,6 +28,8 @@ namespace ExpressionKey
         protected readonly Dictionary<Type, Key> KeysDict
             = new Dictionary<Type, Key>();
 
+        public IEntityPool CreateEntityPool() => new EntityPool(this);
+
         protected void AddRelationship<TEntity, TOther>(Expression<Func<TEntity, TOther>> memberExpr,
             Expression<Func<TEntity, TOther, bool>> relationshipExpr)
         {

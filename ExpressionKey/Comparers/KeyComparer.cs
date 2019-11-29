@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
-namespace ExpressionKey
+namespace ExpressionKey.Comparers
 {
     public class KeyComparer<TKey> : IEqualityComparer<TKey>
     {

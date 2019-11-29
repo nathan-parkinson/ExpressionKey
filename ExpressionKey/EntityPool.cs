@@ -1,4 +1,5 @@
 ﻿using ExpressionKey.Cache;
+using ExpressionKey.Comparers;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -9,7 +10,7 @@ using System.Linq.Expressions;
 namespace ExpressionKey
 {
     //Non Tread Safe
-    public class EntityPool
+    public class EntityPool : IEntityPool
     {
         //TODO add comparer store
 
@@ -19,7 +20,7 @@ namespace ExpressionKey
 
         //internal readonly bool ConsolidateEntities = true;// Settings.ConsolidateEntities;
 
-        public EntityPool(KeyBuilder keyBuilder)
+        internal EntityPool(KeyBuilder keyBuilder)
         {
             _keyBuilder = keyBuilder;
         }
@@ -38,7 +39,7 @@ namespace ExpressionKey
 
         public IEnumerable<T> GetEntities<T>() => BaseTypeRouter<T>.GetEntities(this);
         public void AddEntities<T>(IEnumerable<T> entities) => BaseTypeRouter<T>.AddEntities(this, entities);
-        
+
         internal void AddEntities<T, TBase>(IEnumerable<T> entities)
         {
             var baseType = typeof(TBase);
@@ -57,6 +58,31 @@ namespace ExpressionKey
 
             _keyBuilder.GetAllTypesWithSharedBaseType<TBase>();
             MatchEntities();
+        }
+
+
+        public List<T> ConsolidatedEntities<T>(IEnumerable<T> entities)
+            => BaseTypeRouter<T>.ConsolidatedEntities(this, entities);
+
+        internal List<T> ConsolidatedEntities<T, TBase>(IEnumerable<T> entities)
+        {
+            AddEntities<T, TBase>(entities);
+            if (!_entityStore.TryGetValue(typeof(TBase), out IEnumerable uniqueEntities))
+            {
+                throw new ArgumentException($"Entities of type '{typeof(TBase)}' could not be found");
+            }
+
+            var deDupedHash = uniqueEntities as HashSet<TBase>;
+            var result = entities.Cast<TBase>().Select(e =>
+            {
+                if (deDupedHash.TryGetValue(e, out TBase x))
+                {
+                    return x;
+                }
+                return e;
+            }).Cast<T>().ToList();
+
+            return result;
         }
 
         private void MatchEntities()
