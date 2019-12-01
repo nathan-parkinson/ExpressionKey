@@ -20,11 +20,11 @@ namespace ExpressionKey
         private readonly ConcurrentDictionary<Type, HashSet<Type>> _typeHierarchy =
             new ConcurrentDictionary<Type, HashSet<Type>>();
 
-        protected readonly ConcurrentDictionary<Type, TypeRelationship> RelationshipsStore =
-            new ConcurrentDictionary<Type, TypeRelationship>();
+        protected readonly ConcurrentDictionary<Type, TypeRelationships> RelationshipsStore =
+            new ConcurrentDictionary<Type, TypeRelationships>();
 
-        protected readonly ConcurrentDictionary<Type, Key> KeysStore
-            = new ConcurrentDictionary<Type, Key>();
+        protected readonly ConcurrentDictionary<Type, KeyDetails> KeysStore
+            = new ConcurrentDictionary<Type, KeyDetails>();
 
         public IEntityPool CreateEntityPool() => new EntityPool(this);
 
@@ -37,8 +37,8 @@ namespace ExpressionKey
                 relationshipExpr);
 
             var store = RelationshipsStore.AddOrUpdate(typeof(TEntity),
-                new TypeRelationship(typeof(TEntity), typeof(TEntity).GetRealBaseType(), relationship),
-                (_, tr) => new TypeRelationship(tr, relationship));
+                new TypeRelationships(typeof(TEntity), typeof(TEntity).GetRealBaseType(), relationship),
+                (_, tr) => new TypeRelationships(tr, relationship));
 
             UpdateTypeHierachies(store.BaseType, store.Type);
         }
@@ -53,8 +53,8 @@ namespace ExpressionKey
                 relationshipExpr);
 
             var store = RelationshipsStore.AddOrUpdate(typeof(TEntity),
-                new TypeRelationship(typeof(TEntity), typeof(TEntity).GetRealBaseType(), relationship),
-                (_, tr) => new TypeRelationship(tr, relationship));
+                new TypeRelationships(typeof(TEntity), typeof(TEntity).GetRealBaseType(), relationship),
+                (_, tr) => new TypeRelationships(tr, relationship));
 
             UpdateTypeHierachies(store.BaseType, store.Type);
         }
@@ -63,8 +63,8 @@ namespace ExpressionKey
         protected void AddKey<TEntity, TOther>(Expression<Func<TEntity, TOther>> memberExpr)
         {
             var store = KeysStore.AddOrUpdate(typeof(TEntity),
-                            new Key(typeof(TEntity), typeof(TEntity).GetRealBaseType(), memberExpr),
-                            (_, k) => new Key(k, memberExpr));
+                            new KeyDetails(typeof(TEntity), typeof(TEntity).GetRealBaseType(), memberExpr),
+                            (_, k) => new KeyDetails(k, memberExpr));
 
             UpdateTypeHierachies(store.BaseType, store.Type);
         }
@@ -105,7 +105,7 @@ namespace ExpressionKey
 
         public IEnumerable<Relationship> GetRelationships<T>()
         {
-            if(RelationshipsStore.TryGetValue(typeof(T), out TypeRelationship tr))
+            if(RelationshipsStore.TryGetValue(typeof(T), out TypeRelationships tr))
             {
                 return tr?.Relationships ?? Enumerable.Empty<Relationship>();
             }
@@ -115,7 +115,7 @@ namespace ExpressionKey
 
         public IEnumerable<LambdaExpression> GetKeys<T>()
         {
-            if(KeysStore.TryGetValue(typeof(T), out Key key))
+            if(KeysStore.TryGetValue(typeof(T), out KeyDetails key))
             {
                 return key?.Fields ?? Enumerable.Empty<LambdaExpression>();
             }
@@ -125,12 +125,12 @@ namespace ExpressionKey
 
         public KeyComparer<T> GetKeyComparer<T>()
         {
-            if(KeysStore.TryGetValue(typeof(T), out Key key))
+            if(KeysStore.TryGetValue(typeof(T), out KeyDetails key))
             {
                 if (key.KeyComparer == null)
                 {
                     var comparer = new KeyComparer<T>(GetKeys<T>());
-                    var newKey = new Key(key, comparer);
+                    var newKey = new KeyDetails(key, comparer);
                     KeysStore.TryUpdate(typeof(T), newKey, key);
 
                     return comparer;
@@ -140,72 +140,5 @@ namespace ExpressionKey
             }
             throw new KeyNotFoundException();
         }
-    }
-
-
-    public class Key
-    {
-        public Key(Key key, LambdaExpression fields)
-        {
-            Type = key.Type;
-            BaseType = key.BaseType;
-            Fields.AddRange(key.Fields);
-            Fields.Add(fields);
-        }
-
-        public Key(Type type, Type baseType, LambdaExpression fields)
-        {
-            Type = type;
-            BaseType = baseType;
-            Fields.Add(fields);
-        }
-        public Key(Key key, IKeyComparer comparer)
-        {
-            Type = key.Type;
-            BaseType = key.BaseType;
-            Fields.AddRange(key.Fields);
-            KeyComparer = comparer;
-        }
-
-        public Type Type { get; }
-        public Type BaseType { get; }
-        public List<LambdaExpression> Fields { get; } = new List<LambdaExpression>();
-
-        public IKeyComparer KeyComparer { get; }
-    }
-
-    public class TypeRelationship
-    {
-        public TypeRelationship(TypeRelationship key, Relationship fields)
-        {
-            Type = key.Type;
-            BaseType = key.BaseType;
-            Relationships.AddRange(key.Relationships);
-            Relationships.Add(fields);
-        }
-
-        public TypeRelationship(Type type, Type baseType, Relationship fields)
-        {
-            Type = type;
-            BaseType = baseType;
-            Relationships.Add(fields);
-        }
-
-        public Type Type { get; }
-        public Type BaseType { get; }
-        public List<Relationship> Relationships { get; } = new List<Relationship>();
-    }
-
-    public class Relationship
-    {
-        public Relationship(MemberInfo member, LambdaExpression property, LambdaExpression expression)
-        {
-            Member = member;
-            Property = property;
-            Expression = expression;
-        }
-        public MemberInfo Member { get; }
-        public LambdaExpression Expression { get; }
-        public LambdaExpression Property { get; }
     }
 }
