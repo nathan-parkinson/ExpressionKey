@@ -20,9 +20,9 @@ namespace ExpressionKey
         private readonly ConcurrentDictionary<Type, HashSet<Type>> _typeHierarchy =
             new ConcurrentDictionary<Type, HashSet<Type>>();
 
-        //TODO look into making this ConcurrentDictionary
-        protected readonly Dictionary<Type, TypeRelationship> RelationshipsDict
-            = new Dictionary<Type, TypeRelationship>();
+        protected readonly ConcurrentDictionary<Type, TypeRelationship> RelationshipsStore =
+            new ConcurrentDictionary<Type, TypeRelationship>();
+
 
         //TODO look into making this ConcurrentDictionary
         protected readonly Dictionary<Type, Key> KeysDict
@@ -33,18 +33,15 @@ namespace ExpressionKey
         protected void AddRelationship<TEntity, TOther>(Expression<Func<TEntity, TOther>> memberExpr,
             Expression<Func<TEntity, TOther, bool>> relationshipExpr)
         {
-            var store = RelationshipsDict.GetValueOrDefault(typeof(TEntity));
-
             var relationship = new Relationship(
                 MemberExtractor.ExtractSingleMember(memberExpr).Member,
                 memberExpr,
                 relationshipExpr);
 
-            store = store == null ?
-                new TypeRelationship(typeof(TEntity), typeof(TEntity).GetRealBaseType(), relationship) :
-                new TypeRelationship(store, relationship);
+            var store = RelationshipsStore.AddOrUpdate(typeof(TEntity),
+                new TypeRelationship(typeof(TEntity), typeof(TEntity).GetRealBaseType(), relationship),
+                (_, tr) => new TypeRelationship(tr, relationship));
 
-            RelationshipsDict[typeof(TEntity)] = store;
             UpdateTypeHierachies(store.BaseType, store.Type);
         }
 
@@ -52,18 +49,15 @@ namespace ExpressionKey
             Expression<Func<TEntity, TOther, bool>> relationshipExpr)
             where TProperty : IEnumerable<TOther>
         {
-            var store = RelationshipsDict.GetValueOrDefault(typeof(TEntity));
-
             var relationship = new Relationship(
-                 MemberExtractor.ExtractSingleMember(memberExpr).Member,
-                 memberExpr,
-                 relationshipExpr);
+                MemberExtractor.ExtractSingleMember(memberExpr).Member,
+                memberExpr,
+                relationshipExpr);
 
-            store = store == null ?
-                new TypeRelationship(typeof(TEntity), typeof(TEntity).GetRealBaseType(), relationship) :
-                new TypeRelationship(store, relationship);
+            var store = RelationshipsStore.AddOrUpdate(typeof(TEntity),
+                new TypeRelationship(typeof(TEntity), typeof(TEntity).GetRealBaseType(), relationship),
+                (_, tr) => new TypeRelationship(tr, relationship));
 
-            RelationshipsDict[typeof(TEntity)] = store;
             UpdateTypeHierachies(store.BaseType, store.Type);
         }
 
@@ -115,7 +109,14 @@ namespace ExpressionKey
         }
 
         public IEnumerable<Relationship> GetRelationships<T>()
-            => RelationshipsDict.GetValueOrDefault(typeof(T))?.Relationships ?? Enumerable.Empty<Relationship>();
+        {
+            if(RelationshipsStore.TryGetValue(typeof(T), out TypeRelationship tr))
+            {
+                return tr?.Relationships ?? Enumerable.Empty<Relationship>();
+            }
+
+            return Enumerable.Empty<Relationship>();
+        }
 
         public IEnumerable<LambdaExpression> GetKeys<T>()
             => KeysDict.GetValueOrDefault(typeof(T))?.Fields ?? Enumerable.Empty<LambdaExpression>();
