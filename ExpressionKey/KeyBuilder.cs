@@ -23,10 +23,8 @@ namespace ExpressionKey
         protected readonly ConcurrentDictionary<Type, TypeRelationship> RelationshipsStore =
             new ConcurrentDictionary<Type, TypeRelationship>();
 
-
-        //TODO look into making this ConcurrentDictionary
-        protected readonly Dictionary<Type, Key> KeysDict
-            = new Dictionary<Type, Key>();
+        protected readonly ConcurrentDictionary<Type, Key> KeysStore
+            = new ConcurrentDictionary<Type, Key>();
 
         public IEntityPool CreateEntityPool() => new EntityPool(this);
 
@@ -64,13 +62,10 @@ namespace ExpressionKey
         //TODO could we use a fluent pattern to help build composite keys
         protected void AddKey<TEntity, TOther>(Expression<Func<TEntity, TOther>> memberExpr)
         {
-            var store = KeysDict.GetValueOrDefault(typeof(TEntity));
+            var store = KeysStore.AddOrUpdate(typeof(TEntity),
+                            new Key(typeof(TEntity), typeof(TEntity).GetRealBaseType(), memberExpr),
+                            (_, k) => new Key(k, memberExpr));
 
-            store = store == null ?
-                new Key(typeof(TEntity), typeof(TEntity).GetRealBaseType(), memberExpr) :
-                new Key(store, memberExpr);
-
-            KeysDict[typeof(TEntity)] = store;
             UpdateTypeHierachies(store.BaseType, store.Type);
         }
 
@@ -119,18 +114,31 @@ namespace ExpressionKey
         }
 
         public IEnumerable<LambdaExpression> GetKeys<T>()
-            => KeysDict.GetValueOrDefault(typeof(T))?.Fields ?? Enumerable.Empty<LambdaExpression>();
+        {
+            if(KeysStore.TryGetValue(typeof(T), out Key key))
+            {
+                return key?.Fields ?? Enumerable.Empty<LambdaExpression>();
+            }
+
+            return Enumerable.Empty<LambdaExpression>();
+        }
 
         public KeyComparer<T> GetKeyComparer<T>()
         {
-            var key = KeysDict[typeof(T)];
-            if(key.KeyComparer == null)
+            if(KeysStore.TryGetValue(typeof(T), out Key key))
             {
-                key = new Key(key, new KeyComparer<T>(GetKeys<T>()));
-                KeysDict[typeof(T)] = key;
-            }
+                if (key.KeyComparer == null)
+                {
+                    var comparer = new KeyComparer<T>(GetKeys<T>());
+                    var newKey = new Key(key, comparer);
+                    KeysStore.TryUpdate(typeof(T), newKey, key);
 
-            return key.KeyComparer as KeyComparer<T>;
+                    return comparer;
+                }
+
+                return key.KeyComparer as KeyComparer<T>;
+            }
+            throw new KeyNotFoundException();
         }
     }
 
