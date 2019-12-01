@@ -10,7 +10,6 @@ using System.Text;
 
 namespace ExpressionKey
 {
-    //TODO update this to match the method in Linq2DB.Include (i.e. restore caching)
     public static class ReflectionExtensions
     {
         readonly static ConcurrentDictionary<PropertySetterKey, IPropertySetterCache> _propertySetterCache =

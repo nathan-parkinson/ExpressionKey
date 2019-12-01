@@ -40,12 +40,12 @@ namespace ExpressionKey
 
 
                 var typeParameters = new List<Type>
-                    {
-                        typeof(T),
-                        fk.Property.Body.Type
-                    };
+                {
+                    typeof(T),
+                    fk.Property.Body.Type
+                };
 
-                //if IEnurmeable add anoter type parameter so we call the right method
+                //if IEnurmeable add another type parameter so we call the right method
                 if (fk.Property.Body.Type.IsIEnumerable())
                 {
                     typeParameters.Add(fk.Property.Body.Type.GetTypeToUse());

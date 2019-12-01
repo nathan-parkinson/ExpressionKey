@@ -8,7 +8,7 @@ using System.Text;
 
 namespace ExpressionKey.Comparers
 {
-    public class RelationshipComparer<TKey, TValue> : IEqualityComparer<ExpressionKey<TKey, TValue>>
+    public class RelationshipComparer<TKey, TValue> : IRelationshipComparer, IEqualityComparer<ExpressionKey<TKey, TValue>>
     {
         public RelationshipComparer(Expression<Func<TKey, TValue, bool>> expression)
         {

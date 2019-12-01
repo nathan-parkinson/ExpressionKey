@@ -6,7 +6,7 @@ using System.Linq.Expressions;
 
 namespace ExpressionKey.Comparers
 {
-    public class KeyComparer<TKey> : IEqualityComparer<TKey>
+    public class KeyComparer<TKey> : IKeyComparer, IEqualityComparer<TKey>
     {
         private readonly Func<TKey, TKey, bool> _keyKeyMatcher;
         private readonly Func<TKey, int> _keyHasherFunc;

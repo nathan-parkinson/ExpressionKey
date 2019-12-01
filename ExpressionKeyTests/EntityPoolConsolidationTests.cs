@@ -35,7 +35,7 @@ namespace ExpressionKeyTests
             var union = list1.Union(list2).Union(list3).ToList();
 
             var pool = new TestBuilder().CreateEntityPool();
-            var unique = pool.ConsolidatedEntities(union);
+            var unique = pool.ConsolidateEntities(union);
 
             Assert.AreEqual(unique.Count, count * 3);
             Assert.AreEqual(unique.Distinct().Count(), count);

@@ -1,4 +1,5 @@
 ﻿using ExpressionKey.Cache;
+using ExpressionKey.Comparers;
 using ExpressionKey.Visitors;
 using System;
 using System.Collections;
@@ -11,7 +12,6 @@ using System.Text;
 
 namespace ExpressionKey
 {
-    //Make this an abstract type to be implememented depending on the data source
     public abstract class KeyBuilder
     {
         internal readonly ConcurrentDictionary<Type, ITypeHelper> TypeHelpers =
@@ -34,18 +34,15 @@ namespace ExpressionKey
             Expression<Func<TEntity, TOther, bool>> relationshipExpr)
         {
             var store = RelationshipsDict.GetValueOrDefault(typeof(TEntity));
-            store ??= new TypeRelationship
-            {
-                Type = typeof(TEntity),
-                BaseType = typeof(TEntity).GetRealBaseType()
-            };
 
-            store.Relationships.Add(new Relationship
-            {
-                Member = MemberExtractor.ExtractSingleMember(memberExpr).Member,
-                Property = memberExpr,
-                Expression = relationshipExpr
-            });
+            var relationship = new Relationship(
+                MemberExtractor.ExtractSingleMember(memberExpr).Member,
+                memberExpr,
+                relationshipExpr);
+
+            store = store == null ?
+                new TypeRelationship(typeof(TEntity), typeof(TEntity).GetRealBaseType(), relationship) :
+                new TypeRelationship(store, relationship);
 
             RelationshipsDict[typeof(TEntity)] = store;
             UpdateTypeHierachies(store.BaseType, store.Type);
@@ -56,18 +53,15 @@ namespace ExpressionKey
             where TProperty : IEnumerable<TOther>
         {
             var store = RelationshipsDict.GetValueOrDefault(typeof(TEntity));
-            store ??= new TypeRelationship
-            {
-                Type = typeof(TEntity),
-                BaseType = typeof(TEntity).GetRealBaseType()
-            };
 
-            store.Relationships.Add(new Relationship
-            {
-                Member = MemberExtractor.ExtractSingleMember(memberExpr).Member,
-                Property = memberExpr,
-                Expression = relationshipExpr
-            });
+            var relationship = new Relationship(
+                 MemberExtractor.ExtractSingleMember(memberExpr).Member,
+                 memberExpr,
+                 relationshipExpr);
+
+            store = store == null ?
+                new TypeRelationship(typeof(TEntity), typeof(TEntity).GetRealBaseType(), relationship) :
+                new TypeRelationship(store, relationship);
 
             RelationshipsDict[typeof(TEntity)] = store;
             UpdateTypeHierachies(store.BaseType, store.Type);
@@ -77,13 +71,10 @@ namespace ExpressionKey
         protected void AddKey<TEntity, TOther>(Expression<Func<TEntity, TOther>> memberExpr)
         {
             var store = KeysDict.GetValueOrDefault(typeof(TEntity));
-            store ??= new Key
-            {
-                Type = typeof(TEntity),
-                BaseType = typeof(TEntity).GetRealBaseType()
-            };
 
-            store.Fields.Add(memberExpr);
+            store = store == null ?
+                new Key(typeof(TEntity), typeof(TEntity).GetRealBaseType(), memberExpr) :
+                new Key(store, memberExpr);
 
             KeysDict[typeof(TEntity)] = store;
             UpdateTypeHierachies(store.BaseType, store.Type);
@@ -99,7 +90,7 @@ namespace ExpressionKey
                });
         }
 
-        internal void GetAllTypesWithSharedBaseType<TBase>()
+        internal void CreateTypeHelperForAllTypesWithSharedBaseType<TBase>()
         {
             var baseType = typeof(TBase);
             if (_typeHierarchy.TryGetValue(baseType, out HashSet<Type> types))
@@ -116,9 +107,9 @@ namespace ExpressionKey
 
         private static ITypeHelper CreateTypeHelper(Type type, Type baseType, KeyBuilder keyBuilder)
         {
-            Type generic = typeof(TypeHelper<,>);
+            var generic = typeof(TypeHelper<,>);
             Type[] typeArgs = { type, baseType };
-            Type constructed = generic.MakeGenericType(typeArgs);
+            var constructed = generic.MakeGenericType(typeArgs);
 
             return Activator.CreateInstance(constructed, keyBuilder) as ITypeHelper;
         }
@@ -126,36 +117,86 @@ namespace ExpressionKey
         public IEnumerable<Relationship> GetRelationships<T>()
             => RelationshipsDict.GetValueOrDefault(typeof(T))?.Relationships ?? Enumerable.Empty<Relationship>();
 
-        public IEnumerable<LambdaExpression> GetKeys<T>() 
+        public IEnumerable<LambdaExpression> GetKeys<T>()
             => KeysDict.GetValueOrDefault(typeof(T))?.Fields ?? Enumerable.Empty<LambdaExpression>();
+
+        public KeyComparer<T> GetKeyComparer<T>()
+        {
+            var key = KeysDict[typeof(T)];
+            if(key.KeyComparer == null)
+            {
+                key = new Key(key, new KeyComparer<T>(GetKeys<T>()));
+                KeysDict[typeof(T)] = key;
+            }
+
+            return key.KeyComparer as KeyComparer<T>;
+        }
     }
 
 
     public class Key
     {
-        //TODO make immutable
-        public Type Type { get; set; }
+        public Key(Key key, LambdaExpression fields)
+        {
+            Type = key.Type;
+            BaseType = key.BaseType;
+            Fields.AddRange(key.Fields);
+            Fields.Add(fields);
+        }
 
-        //TODO make immutable
-        public Type BaseType { get; set; }
-        public List<LambdaExpression> Fields { get; set; } = new List<LambdaExpression>();
+        public Key(Type type, Type baseType, LambdaExpression fields)
+        {
+            Type = type;
+            BaseType = baseType;
+            Fields.Add(fields);
+        }
+        public Key(Key key, IKeyComparer comparer)
+        {
+            Type = key.Type;
+            BaseType = key.BaseType;
+            Fields.AddRange(key.Fields);
+            KeyComparer = comparer;
+        }
+
+        public Type Type { get; }
+        public Type BaseType { get; }
+        public List<LambdaExpression> Fields { get; } = new List<LambdaExpression>();
+
+        public IKeyComparer KeyComparer { get; }
     }
 
     public class TypeRelationship
     {
-        //TODO make immutable
-        public Type Type { get; set; }
+        public TypeRelationship(TypeRelationship key, Relationship fields)
+        {
+            Type = key.Type;
+            BaseType = key.BaseType;
+            Relationships.AddRange(key.Relationships);
+            Relationships.Add(fields);
+        }
 
-        //TODO make immutable
-        public Type BaseType { get; set; }
-        public List<Relationship> Relationships { get; set; } = new List<Relationship>();
+        public TypeRelationship(Type type, Type baseType, Relationship fields)
+        {
+            Type = type;
+            BaseType = baseType;
+            Relationships.Add(fields);
+        }
+
+        public Type Type { get; }
+        public Type BaseType { get; }
+        public List<Relationship> Relationships { get; } = new List<Relationship>();
     }
 
-    //TODO make immutable
     public class Relationship
     {
-        public MemberInfo Member { get; set; }
-        public LambdaExpression Expression { get; set; }
-        public LambdaExpression Property { get; set; }
+        public Relationship(MemberInfo member, LambdaExpression property, LambdaExpression expression)
+        {
+            Member = member;
+            Property = property;
+            Expression = expression;
+        }
+        public MemberInfo Member { get; }
+        public LambdaExpression Expression { get; }
+        public LambdaExpression Property { get; }
     }
 }

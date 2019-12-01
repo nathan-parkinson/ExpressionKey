@@ -80,7 +80,7 @@ namespace ExpressionKey
         IEnumerable<U> parent,
         Expression<Func<T, U, bool>> joinExpression) where V : IEnumerable<U>
         {
-            if(child == null || parent == null)
+            if (child == null || parent == null)
             {
                 return;
             }

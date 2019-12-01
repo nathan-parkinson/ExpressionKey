@@ -1,6 +1,7 @@
 ﻿using ExpressionKey.Comparers;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -10,11 +11,19 @@ namespace ExpressionKey
 {
     public class ExpressionKeyLookup<T, U> : IExpressionKeyLookup<T, U>
     {
+        private static readonly ConcurrentDictionary<Expression, IRelationshipComparer> _comparerStore =
+            new ConcurrentDictionary<Expression, IRelationshipComparer>(ExpressionEqualityComparer.Instance);
+
         private readonly ILookup<ExpressionKey<T, U>, T> _lookup;
 
         internal ExpressionKeyLookup(IEnumerable<T> items, Expression<Func<T, U, bool>> expr)
         {
-            var comparer = new RelationshipComparer<T, U>(expr);
+            var comparer = _comparerStore.GetOrAdd(expr, e =>
+            {
+                var ex = e as Expression<Func<T, U, bool>>;
+                return new RelationshipComparer<T, U>(ex);
+            }) as RelationshipComparer<T, U>;
+
             IsExpressionInvalid = comparer.IsExpressionInvalid;
 
             if (!comparer.IsExpressionInvalid)

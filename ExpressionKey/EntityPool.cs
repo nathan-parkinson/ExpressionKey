@@ -12,8 +12,6 @@ namespace ExpressionKey
     //Non Tread Safe
     public class EntityPool : IEntityPool
     {
-        //TODO add comparer store
-
         private readonly KeyBuilder _keyBuilder;
         private readonly ConcurrentDictionary<Type, IEnumerable> _entityStore
             = new ConcurrentDictionary<Type, IEnumerable>();
@@ -45,10 +43,9 @@ namespace ExpressionKey
             var baseType = typeof(TBase);
             var type = typeof(T);
 
-            var pkFields = _keyBuilder.GetKeys<TBase>();
             var baseEntities = entities.Cast<TBase>();
-
-            _entityStore.AddOrUpdate(baseType, _ => new HashSet<TBase>(baseEntities, new KeyComparer<TBase>(pkFields)),
+            
+            _entityStore.AddOrUpdate(baseType, _ => new HashSet<TBase>(baseEntities, _keyBuilder.GetKeyComparer<TBase>()),
                 (_, o) =>
                 {
                     var oldHash = o as HashSet<TBase>;
@@ -56,20 +53,20 @@ namespace ExpressionKey
                     return oldHash;
                 });
 
-            _keyBuilder.GetAllTypesWithSharedBaseType<TBase>();
+            _keyBuilder.CreateTypeHelperForAllTypesWithSharedBaseType<TBase>();
             MatchEntities();
         }
 
 
-        public List<T> ConsolidatedEntities<T>(IEnumerable<T> entities)
-            => BaseTypeRouter<T>.ConsolidatedEntities(this, entities);
+        public List<T> ConsolidateEntities<T>(IEnumerable<T> entities)
+            => BaseTypeRouter<T>.ConsolidateEntities(this, entities);
 
-        internal List<T> ConsolidatedEntities<T, TBase>(IEnumerable<T> entities)
+        internal List<T> ConsolidateEntities<T, TBase>(IEnumerable<T> entities)
         {
             AddEntities<T, TBase>(entities);
             if (!_entityStore.TryGetValue(typeof(TBase), out IEnumerable uniqueEntities))
             {
-                throw new ArgumentException($"Entities of type '{typeof(TBase)}' could not be found");
+                throw new ArgumentException($"Entities of type '{typeof(TBase).Name}' could not be found");
             }
 
             var deDupedHash = uniqueEntities as HashSet<TBase>;
