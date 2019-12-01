@@ -41,6 +41,61 @@ namespace ExpressionKeyTests
             Assert.AreEqual(unique.Distinct().Count(), count);
         }
 
+        [Test]
+        public void EntityPoolConsolidationCompositeKeyTest()
+        {
+            const int count = 100;
+            var list1 = Enumerable.Range(1, count).Select(z => new Order
+            {
+                OrderId = z,
+                OrderDate = DateTime.Today.AddDays(z)
+            }).ToList();
+
+            var list2 = Enumerable.Range(1, count).Select(z => new Order1
+            {
+                OrderId = z,
+                OrderDate = DateTime.MinValue
+            }).ToList();
+
+            var list3 = Enumerable.Range(1, count).Select(z => new Order2
+            {
+                OrderId = z,
+                OrderDate = DateTime.Today.AddDays(z)
+            }).ToList();
+
+            var union = list1.Union(list2).Union(list3).ToList();
+
+            var pool = new TestBuilderComposite().CreateEntityPool();
+            var unique = pool.ConsolidateEntities(union);
+
+            Assert.AreEqual(unique.Count, count * 3);
+            Assert.AreEqual(unique.Distinct().Count(), count * 2);
+        }
+
+
+
+        [Test]
+        public void EntityPoolConsolidationNullableKeyTest()
+        {
+            const int count = 100;
+            var list1 = Enumerable.Range(1, count).Select(z => new Order
+            {
+                Nullable = z % 5 == 0 ? default(int?) : z
+            }).ToList();
+
+            var list2 = Enumerable.Range(1, count).Select(z => new Order1
+            {
+                Nullable = z % 5 == 0 ? default(int?) : z
+            }).ToList();
+
+            var union = list1.Union(list2).ToList();
+
+            var pool = new TestBuilderNullable().CreateEntityPool();
+            var unique = pool.ConsolidateEntities(union);
+
+            Assert.AreEqual(unique.Count, count * 2);
+            Assert.AreEqual(unique.Distinct().Count(), count - (count / 5) + 1);
+        }
 
 
 
@@ -67,6 +122,8 @@ namespace ExpressionKeyTests
             public int OrderId { get; set; }
             public DateTime OrderDate { get; set; }
 
+            public int? Nullable { get; set; }
+
             public List<ProductLine> ProductLines { get; set; } = new List<ProductLine>();
         }
 
@@ -92,6 +149,25 @@ namespace ExpressionKeyTests
                 AddKey<LinkedClass1, int>(o => o.Id);
                 AddKey<LinkedClass2, int>(o => o.Id);
                 AddKey<LinkedClass3, int>(o => o.Id);
+            }
+        }
+
+
+
+        public class TestBuilderComposite : KeyBuilder
+        {
+            public TestBuilderComposite()
+            {
+                AddKey<Order, int>(o => o.OrderId);
+                AddKey<Order, DateTime>(o => o.OrderDate);
+            }
+        }
+
+        public class TestBuilderNullable : KeyBuilder
+        {
+            public TestBuilderNullable()
+            {
+                AddKey<Order, int?>(o => o.Nullable);
             }
         }
     }
