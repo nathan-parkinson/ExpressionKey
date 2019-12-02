@@ -24,7 +24,6 @@ namespace ExpressionKeyApp
                 }
             }
 
-            //TODO have a fall back for this scenario or at leat a graceful way to handle it
             Expression<Func<PersonChild, Person, bool>> unhashableExpr = (pc, p) => p.PersonId < pc.ParentId;
             var lookupImpossible = children.ToExpressionKeyLookup(unhashableExpr);
 

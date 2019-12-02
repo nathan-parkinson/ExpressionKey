@@ -23,36 +23,27 @@ namespace ExpressionKey
             return lookup;
         }
 
-
-
-
-        // T = ProductLines
-        // U = Order
-        // property = ProductLine.Order
-        // JoinExpression = (c, p) => c.OrderId == p.OrderId
-        //TODO find better names for the parameters
-        public static void SetReferences<T, U>(
-            this IEnumerable<T> productLines,
+        public static IEnumerable<T> SetReferences<T, U>(
+            this IEnumerable<T> source,
             Expression<Func<T, U>> property,
-            IEnumerable<U> orders,
+            IEnumerable<U> target,
             Expression<Func<T, U, bool>> joinExpression)
         {
-            if (productLines == null || orders == null)
+            if (source == null || target == null)
             {
-                return;
+                return source;
             }
 
             var member = MemberExtractor.ExtractSingleMember(property);
             var setter = property.Parameters[0].Type.CreatePropertySetter<T, U>(member.Member.Name);
 
-            var collection = productLines as ICollection<T> ?? productLines.ToList();
+            var collection = source as ICollection<T> ?? source.ToList();
             var lookup = collection.ToExpressionKeyLookup(joinExpression);
 
             if (lookup != null)
             {
-                foreach (var parentItem in orders)
+                foreach (var parentItem in target)
                 {
-                    //TODO look into whether below should be lookup.GetMatches(parentItem).Single()
                     foreach (var matchingChild in lookup.GetMatches(parentItem))
                     {
                         //set item to match.property
@@ -64,38 +55,38 @@ namespace ExpressionKey
             else
             {
                 var func = joinExpression.Compile();
-                foreach (var childItem in productLines)
+                foreach (var childItem in source)
                 {
-                    var matchingParent = orders.FirstOrDefault(x => func(childItem, x));
+                    var matchingParent = target.FirstOrDefault(x => func(childItem, x));
                     setter(childItem, matchingParent);
                 }
             }
-            //return collection;
+            return collection;
         }
 
 
-        public static void SetReferences<T, V, U>(
-        this IEnumerable<T> child,
+        public static IEnumerable<T> SetReferences<T, V, U>(
+        this IEnumerable<T> source,
         Expression<Func<T, V>> property,
-        IEnumerable<U> parent,
+        IEnumerable<U> target,
         Expression<Func<T, U, bool>> joinExpression) where V : IEnumerable<U>
         {
-            if (child == null || parent == null)
+            if (source == null || target == null)
             {
-                return;
+                return source;
             }
 
             var member = MemberExtractor.ExtractSingleMember(property);
             var setter = typeof(T).CreateCollectionPropertySetter<T, U>(member.Member.Name, member.Type);
 
-            var collection = child as ICollection<T> ?? child.ToList();
+            var collection = source as ICollection<T> ?? source.ToList();
             var lookup = collection.ToExpressionKeyLookup(joinExpression);
 
             var ifnullSetter = typeof(T).CreatePropertySetup<T, U>(member.Member.Name);
 
             if (lookup != null)
             {
-                foreach (var parentItem in parent)
+                foreach (var parentItem in target)
                 {
                     foreach (var matchingChild in lookup.GetMatches(parentItem))
                     {
@@ -109,24 +100,18 @@ namespace ExpressionKey
             else
             {
                 var func = joinExpression.Compile();
-                foreach (var childItem in child)
+                foreach (var childItem in source)
                 {
                     ifnullSetter(childItem);
 
-                    var matchingParent = parent.FirstOrDefault(x => func(childItem, x));
+                    var matchingParent = target.FirstOrDefault(x => func(childItem, x));
                     setter(childItem, matchingParent);
                 }
             }
-            //return collection;
+            return collection;
         }
 
-
-        /// <summary>
-        /// Gets the member's underlying type.
-        /// </summary>
-        /// <param name="member">The member.</param>
-        /// <returns>The underlying type of the member.</returns>
-        public static Type GetMemberUnderlyingType(this MemberInfo member)
+        internal static Type GetMemberUnderlyingType(this MemberInfo member)
         {
             switch (member.MemberType)
             {
