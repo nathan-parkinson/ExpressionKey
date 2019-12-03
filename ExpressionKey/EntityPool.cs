@@ -23,7 +23,7 @@ namespace ExpressionKey
             _keyBuilder = keyBuilder;
         }
 
-        internal IEnumerable<T> GetEntities<T, TBase>()
+        internal IEnumerable<T> GetAllEntities<T, TBase>()
         {
             var baseType = typeof(TBase);
             if (!_entityStore.ContainsKey(baseType))
@@ -35,7 +35,7 @@ namespace ExpressionKey
             return entities.OfType<T>();
         }
 
-        public IEnumerable<T> GetEntities<T>() => BaseTypeRouter<T>.GetEntities(this);
+        public IEnumerable<T> GetAllEntities<T>() => BaseTypeRouter<T>.GetAllEntities(this);
         public void AddEntities<T>(IEnumerable<T> entities) => BaseTypeRouter<T>.AddEntities(this, entities);
 
         internal void AddEntities<T, TBase>(IEnumerable<T> entities)
@@ -57,11 +57,10 @@ namespace ExpressionKey
             MatchEntities();
         }
 
+        public IEnumerable<T> GetEntities<T>(IEnumerable<T> entities)
+            => BaseTypeRouter<T>.GetEntities(this, entities);
 
-        public List<T> ConsolidateEntities<T>(IEnumerable<T> entities)
-            => BaseTypeRouter<T>.ConsolidateEntities(this, entities);
-
-        internal List<T> ConsolidateEntities<T, TBase>(IEnumerable<T> entities)
+        internal List<T> GetEntities<T, TBase>(IEnumerable<T> entities)
         {
             AddEntities<T, TBase>(entities);
             if (!_entityStore.TryGetValue(typeof(TBase), out IEnumerable uniqueEntities))

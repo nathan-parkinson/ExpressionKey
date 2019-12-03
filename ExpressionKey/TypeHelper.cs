@@ -32,8 +32,8 @@ namespace ExpressionKey
 
                 var propertyAccess = Expression.PropertyOrField(param, fk.Member.Name);
 
-                var entities = Expression.Call(paramPool, nameof(EntityPool.GetEntities), new Type[] { typeof(T) });
-                var otherEntities = Expression.Call(paramPool, nameof(EntityPool.GetEntities), new Type[]
+                var entities = Expression.Call(paramPool, nameof(EntityPool.GetAllEntities), new Type[] { typeof(T) });
+                var otherEntities = Expression.Call(paramPool, nameof(EntityPool.GetAllEntities), new Type[]
                 {
                         fk.Expression.Parameters[1].Type
                 });
