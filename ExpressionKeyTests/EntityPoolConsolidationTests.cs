@@ -35,7 +35,7 @@ namespace ExpressionKeyTests
             var union = list1.Union(list2).Union(list3).ToList();
 
             var pool = new TestBuilder().CreateEntityPool();
-            var unique = pool.ConsolidateEntities(union);
+            var unique = pool.GetEntities(union).ToList();
 
             Assert.AreEqual(unique.Count, count * 3);
             Assert.AreEqual(unique.Distinct().Count(), count);
@@ -66,7 +66,7 @@ namespace ExpressionKeyTests
             var union = list1.Union(list2).Union(list3).ToList();
 
             var pool = new TestBuilderComposite().CreateEntityPool();
-            var unique = pool.ConsolidateEntities(union);
+            var unique = pool.GetEntities(union).ToList();
 
             Assert.AreEqual(unique.Count, count * 3);
             Assert.AreEqual(unique.Distinct().Count(), count * 2);
@@ -91,7 +91,7 @@ namespace ExpressionKeyTests
             var union = list1.Union(list2).ToList();
 
             var pool = new TestBuilderNullable().CreateEntityPool();
-            var unique = pool.ConsolidateEntities(union);
+            var unique = pool.GetEntities(union).ToList();
 
             Assert.AreEqual(unique.Count, count * 2);
             Assert.AreEqual(unique.Distinct().Count(), count - (count / 5) + 1);

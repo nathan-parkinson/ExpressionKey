@@ -122,7 +122,7 @@ namespace ExpressionKeyTests
             public int OrderId { get; set; }
             public DateTime OrderDate { get; set; }
 
-            public List<ProductLine> ProductLines { get; set; } = new List<ProductLine>();
+            public IEnumerable<ProductLine> ProductLines { get; set; } = new List<ProductLine>();
         }
 
         public class ProductLine

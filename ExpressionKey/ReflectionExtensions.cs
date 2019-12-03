@@ -6,8 +6,10 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 
+[assembly: InternalsVisibleTo("ExpressionKeyTests")]
 namespace ExpressionKey
 {
     public static class ReflectionExtensions
@@ -25,6 +27,11 @@ namespace ExpressionKey
         {
             if (type.IsGenericType)
             {
+                if (type.IsInterface && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                {
+                    return type.GetGenericArguments()[0];
+                }
+
                 var genericTypeDefinition = type.GetGenericTypeDefinition();
 
                 if (genericTypeDefinition.GetInterfaces()
