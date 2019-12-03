@@ -16,7 +16,7 @@ namespace ExpressionKeyTests
         [TestCase(typeof(List<Person>), typeof(Person))]
         public void GetTypeToUseTest(Type type1, Type type2)
         {
-            var type = ReflectionExtensions.GetTypeToUse(type1);
+            var type = type1.GetTypeToUse();
             Assert.AreEqual(type2, type);
         }
 
