@@ -43,9 +43,9 @@ namespace ExpressionKey
             UpdateTypeHierachies(store.BaseType, store.Type);
         }
 
-        protected void AddRelationship<TEntity, TProperty, TOther>(Expression<Func<TEntity, TProperty>> memberExpr,
+        protected void AddRelationship<TEntity, TEnumerable, TOther>(Expression<Func<TEntity, TEnumerable>> memberExpr,
             Expression<Func<TEntity, TOther, bool>> relationshipExpr)
-            where TProperty : IEnumerable<TOther>
+            where TEnumerable : IEnumerable<TOther>
         {
             var relationship = new Relationship(
                 MemberExtractor.ExtractSingleMember(memberExpr).Member,
