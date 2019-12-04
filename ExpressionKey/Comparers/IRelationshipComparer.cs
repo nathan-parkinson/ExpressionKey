@@ -1,12 +1,4 @@
-﻿using ExpressionKey.Visitors;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-using System.Text;
-
-namespace ExpressionKey.Comparers
+﻿namespace ExpressionKey.Comparers
 {
     public interface IRelationshipComparer { }
 }
