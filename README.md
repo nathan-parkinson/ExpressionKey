@@ -1,4 +1,7 @@
 # ExpressionKey
+
+[![NuGet Version and Downloads count](https://buildstats.info/nuget/expressionkey)](https://www.nuget.org/packages/ExpressionKey/)
+
 ExpressionKey is a library to match up objects - usually from a database - based on defined keys and relationships.  
 
 Ideal for use with micro orms like dapper.
