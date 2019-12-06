@@ -2,6 +2,15 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
+    <Authors>Nathan Parkinson</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Copyright>Copyright 2019</Copyright>
+    <PackageTags>EntityMap Mapping EntityMatch</PackageTags>
+    <Description>Library to match up objects based on defined keys and relationships</Description>
+    <PackageProjectUrl>https://github.com/nathan-parkinson/ExpressionKey</PackageProjectUrl>
+    <PackageReleaseNotes>Initial release</PackageReleaseNotes>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/nathan-parkinson/ExpressionKey.git</RepositoryUrl>
   </PropertyGroup>
 
 </Project>
