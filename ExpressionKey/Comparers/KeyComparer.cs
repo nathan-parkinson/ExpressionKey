@@ -61,7 +61,7 @@ namespace ExpressionKey.Comparers
             foreach (var key in keys)
             {
                 var exprWithNewParam = ParameterReplacer.Replace(key, key.Parameters.First(), param) as LambdaExpression;
-                
+
                 expressions.Add(Expression.Call(hasherVariable, nameof(HashCode.Add), new Type[] { key.ReturnType }, exprWithNewParam.Body));
             }
 
@@ -76,7 +76,56 @@ namespace ExpressionKey.Comparers
             return lambda.Compile();
         }
 
+#if NETSTANDARD2_0
+        private static Func<T, int> CreateHashCode<T>(IEnumerable<LambdaExpression> keys)
+        {
+            var expVar = Expression.Variable(typeof(int), "hashCode");
+            var assign = Expression.Assign(expVar, Expression.Constant(-984676295));
+
+            var type = typeof(T);
+
+            var exps = new List<Expression> { assign };
+            var expConst = Expression.Constant(-1521134295);
+            var param = Expression.Parameter(type, "param");
+
+            foreach (var key in keys)
+            {
+                var ex1 = Expression.MultiplyAssign(expVar, expConst);
+                exps.Add(ex1);
+
+                var exprWithNewParam = ParameterReplacer.Replace(key, key.Parameters.First(), param) as LambdaExpression;
+                
+                var getHashCode = Expression.Call(exprWithNewParam.Body, exprWithNewParam.ReturnType.GetMethod(nameof(object.GetHashCode), new Type[0]));
+
+                if (exprWithNewParam.ReturnType.IsClass)
+                {
+                    var isNotNull = Expression.NotEqual(exprWithNewParam.Body, Expression.Constant(null, exprWithNewParam.ReturnType));
+                    exps.Add(Expression.IfThen(isNotNull, Expression.AddAssign(expVar, getHashCode)));
+                }
+                else
+                {
+                    exps.Add(Expression.AddAssign(expVar, getHashCode));
+                }
+
+
+            }
+
+            var returnTarget = Expression.Label(typeof(int));
+            var returnExpression = Expression.Return(returnTarget, expVar, typeof(int));
+            var returnLabel = Expression.Label(returnTarget, Expression.Constant(0));
+            exps.Add(returnExpression);
+            exps.Add(returnLabel);
+
+            var block = Expression.Block(new List<ParameterExpression> { expVar }, exps);
+
+            var lamdba = Expression.Lambda<Func<T, int>>(block, param);
+            var func = lamdba.Compile();
+
+            return func;
+        }
+#endif
+
         public bool Equals(TKey x, TKey y) => _keyKeyMatcher(x, y);
-        public int GetHashCode(TKey obj) =>  _keyHasherFunc(obj);
+        public int GetHashCode(TKey obj) => _keyHasherFunc(obj);
     }
 }
