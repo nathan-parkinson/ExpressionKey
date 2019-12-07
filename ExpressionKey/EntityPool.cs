@@ -6,15 +6,12 @@ using System.Linq;
 
 namespace ExpressionKey
 {
-    //Non Tread Safe
     public class EntityPool : IEntityPool
     {
         private readonly KeyBuilder _keyBuilder;
-        private readonly ConcurrentDictionary<Type, IEnumerable> _entityStore
-            = new ConcurrentDictionary<Type, IEnumerable>();
-
-        //internal readonly bool ConsolidateEntities = true;// Settings.ConsolidateEntities;
-
+        private readonly ConcurrentDictionary<Type, IEntityStore> _entityStore
+            = new ConcurrentDictionary<Type, IEntityStore>();
+        
         internal EntityPool(KeyBuilder keyBuilder)
         {
             _keyBuilder = keyBuilder;
@@ -28,8 +25,8 @@ namespace ExpressionKey
                 return null;
             }
 
-            var entities = _entityStore[baseType] as ISet<TBase>;
-            return entities.OfType<T>();
+            var entities = _entityStore[baseType] as IEntityStore<TBase>;
+            return entities.GetValues().OfType<T>();
         }
 
         public IEnumerable<T> GetAllEntities<T>() => BaseTypeRouter<T>.GetAllEntities(this);
@@ -42,11 +39,11 @@ namespace ExpressionKey
 
             var baseEntities = entities.Cast<TBase>();
             
-            _entityStore.AddOrUpdate(baseType, _ => new HashSet<TBase>(baseEntities, _keyBuilder.GetKeyComparer<TBase>()),
+            _entityStore.AddOrUpdate(baseType, _ => new EntityStore<TBase>(baseEntities, _keyBuilder.GetKeyComparer<TBase>()),
                 (_, o) =>
                 {
-                    var oldHash = o as HashSet<TBase>;
-                    oldHash.UnionWith(baseEntities);
+                    var oldHash = o as IEntityStore<TBase>;
+                    oldHash.AddEntities(baseEntities);
                     return oldHash;
                 });
 
@@ -60,15 +57,15 @@ namespace ExpressionKey
         internal List<T> GetEntities<T, TBase>(IEnumerable<T> entities)
         {
             AddEntities<T, TBase>(entities);
-            if (!_entityStore.TryGetValue(typeof(TBase), out IEnumerable uniqueEntities))
+            if (!_entityStore.TryGetValue(typeof(TBase), out IEntityStore uniqueEntities))
             {
                 throw new ArgumentException($"Entities of type '{typeof(TBase).Name}' could not be found");
             }
 
-            var deDupedHash = uniqueEntities as HashSet<TBase>;
+            var deDupedHash = uniqueEntities as IEntityStore<TBase>;
             var result = entities.Cast<TBase>().Select(e =>
             {
-                if (deDupedHash.TryGetValue(e, out TBase x))
+                if (deDupedHash.TryGetEntity(e, out TBase x))
                 {
                     return x;
                 }
