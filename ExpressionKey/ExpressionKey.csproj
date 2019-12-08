@@ -9,16 +9,13 @@
     <PackageTags>EntityMap Mapping EntityMatch</PackageTags>
     <Description>Library to match up objects based on defined keys and relationships</Description>
     <PackageProjectUrl>https://github.com/nathan-parkinson/ExpressionKey</PackageProjectUrl>
-    <PackageReleaseNotes>Initial release</PackageReleaseNotes>
+    <PackageReleaseNotes>Added support for .net standard 2.0</PackageReleaseNotes>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/nathan-parkinson/ExpressionKey.git</RepositoryUrl>
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' != 'netstandard2.1' And  
-             '$(TargetFramework)' != 'netcoreapp2.1' And 
-             '$(TargetFramework)' != 'netcoreapp2.2' And
-             '$(TargetFramework)' != 'netcoreapp3.0' And
-             '$(TargetFramework)' != 'netcoreapp3.1' ">
+  <ItemGroup Condition=" '$(TargetFramework)' != 'netstandard2.1' And  &#xD;&#xA;             '$(TargetFramework)' != 'netcoreapp2.1' And &#xD;&#xA;             '$(TargetFramework)' != 'netcoreapp2.2' And&#xD;&#xA;             '$(TargetFramework)' != 'netcoreapp3.0' And&#xD;&#xA;             '$(TargetFramework)' != 'netcoreapp3.1' ">
     <PackageReference Include="Microsoft.Bcl.HashCode" Version="1.1.0" />
   </ItemGroup>
 
