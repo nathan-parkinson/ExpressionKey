@@ -1,16 +1,22 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <!--<TargetFramework>netstandard2.1</TargetFramework>-->
+    <TargetFrameworks>net472;net48;netcoreapp2.0;netcoreapp2.1;netcoreapp2.2;netcoreapp3.0;netcoreapp3.1;netstandard2.0;netstandard2.1</TargetFrameworks>
     <Authors>Nathan Parkinson</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>Copyright 2019</Copyright>
     <PackageTags>EntityMap Mapping EntityMatch</PackageTags>
     <Description>Library to match up objects based on defined keys and relationships</Description>
     <PackageProjectUrl>https://github.com/nathan-parkinson/ExpressionKey</PackageProjectUrl>
-    <PackageReleaseNotes>Initial release</PackageReleaseNotes>
+    <PackageReleaseNotes>Added support for .net standard 2.0</PackageReleaseNotes>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/nathan-parkinson/ExpressionKey.git</RepositoryUrl>
+    <Version>1.0.1</Version>
   </PropertyGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' != 'netstandard2.1' And  &#xD;&#xA;             '$(TargetFramework)' != 'netcoreapp2.1' And &#xD;&#xA;             '$(TargetFramework)' != 'netcoreapp2.2' And&#xD;&#xA;             '$(TargetFramework)' != 'netcoreapp3.0' And&#xD;&#xA;             '$(TargetFramework)' != 'netcoreapp3.1' ">
+    <PackageReference Include="Microsoft.Bcl.HashCode" Version="1.1.0" />
+  </ItemGroup>
 
 </Project>
