@@ -90,7 +90,7 @@ namespace ExpressionKey.Comparers
 
 
 
-#if NETSTANDARD2_0
+/*
         private static Func<T, int> CreateHashCode<T>(IEnumerable<Expression> keys, ParameterExpression oldParam)
         {
             var expVar = Expression.Variable(typeof(int), "hashCode");
@@ -137,7 +137,7 @@ namespace ExpressionKey.Comparers
 
             return func;
         }
-#endif
+*/
 
         public Func<TKey, TKey, bool> KeyKeyMatcher { get; set; }
         public Func<TKey, TValue, bool> KeyValueMatcher { get; set; }

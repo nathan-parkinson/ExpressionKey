@@ -46,6 +46,7 @@ namespace ExpressionKey.Comparers
             return func;
         }
 
+
         private static Func<T, int> CreateHashCode<T>(IEnumerable<LambdaExpression> keys)
         {
             var param = Expression.Parameter(typeof(T), "source");
@@ -76,7 +77,7 @@ namespace ExpressionKey.Comparers
             return lambda.Compile();
         }
 
-#if NETSTANDARD2_0
+/*
         private static Func<T, int> CreateHashCode<T>(IEnumerable<LambdaExpression> keys)
         {
             var expVar = Expression.Variable(typeof(int), "hashCode");
@@ -123,7 +124,7 @@ namespace ExpressionKey.Comparers
 
             return func;
         }
-#endif
+*/
 
         public bool Equals(TKey x, TKey y) => _keyKeyMatcher(x, y);
         public int GetHashCode(TKey obj) => _keyHasherFunc(obj);
