@@ -38,6 +38,36 @@ namespace ExpressionKeyTests
 
 
         [Test]
+        public void EntityPoolAddEachEntityToEnumerableOnlyOnceTest()
+        {
+            var people = Enumerable.Range(1, 1000).Select(z => new Order
+            {
+                OrderId = z,
+                OrderDate = DateTime.Today.AddDays(z)
+            }).ToList();
+
+            var children = Enumerable.Range(1, 10000).Select(z => new ProductLine
+            {
+                OrderId = (int)Math.Ceiling(z / 10.0f),
+                ProductCode = "Child " + z,
+                ProductLineId = z
+            }).ToList();
+
+
+            var pool = new TestBuilder().CreateEntityPool();
+            pool.AddEntities(people);
+            pool.AddEntities(children);
+            pool.AddEntities(children);
+
+
+            Assert.IsTrue(people.All(x => x.ProductLines.All(c => c.OrderId == x.OrderId)));
+            Assert.IsTrue(children.All(c => c.Order.OrderId == c.OrderId));
+            Assert.AreEqual(children.Count, people.SelectMany(x => x.ProductLines).Count());
+        }
+
+
+
+        [Test]
         public void MatchFromBaseTypeRelationshipTest()
         {
             var people = Enumerable.Range(1, 10).Select(z => new Order1
