@@ -91,12 +91,13 @@ namespace ExpressionKey
             {
                 foreach (var parentEntity in collection)
                 {
-                    IEnumerable<U> exitingChildEntities = ifnullSetter(parentEntity);
+                    var existingChildEntities = ifnullSetter(parentEntity);
+
                     var childEntities = new HashSet<U>(
                         targetLookup.GetMatches(parentEntity),
                         keyBuilder.GetKeyComparer<U>());
 
-                    childEntities.UnionWith(exitingChildEntities);
+                    childEntities.ExceptWith(existingChildEntities);
                     foreach (var childEntity in childEntities)
                     {
                         setter(parentEntity, childEntity);
@@ -104,7 +105,6 @@ namespace ExpressionKey
                 }
 
                 return collection;
-
             }
 
             var func = joinExpression.Compile();
