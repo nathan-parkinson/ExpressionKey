@@ -66,11 +66,11 @@ namespace ExpressionKey
 
 
         public static IEnumerable<T> SetReferences<T, V, U>(
-        this IEnumerable<T> source,
-        Expression<Func<T, V>> property,
-        IEnumerable<U> target,
-        Expression<Func<T, U, bool>> joinExpression,
-        KeyBuilder keyBuilder) where V : IEnumerable<U>
+            this IEnumerable<T> source,
+            Expression<Func<T, V>> property,
+            IEnumerable<U> target,
+            Expression<Func<T, U, bool>> joinExpression,
+            KeyBuilder keyBuilder) where V : IEnumerable<U>
         {
             if (source == null || target == null)
             {
