@@ -1,15 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace ExpressionKey.Cache
 {
-    class CollectionInitializer<TClass> : ICollectionInitializer
+    class CollectionInitializer<TClass, TChild> : ICollectionInitializer
     {
-        public CollectionInitializer(Action<TClass> intializer)
+        public CollectionInitializer(Func<TClass, IEnumerable<TChild>> intializer)
         {
             Initializer = intializer;
         }
 
-        public Action<TClass> Initializer { get; }
+        public Func<TClass, IEnumerable<TChild>> Initializer { get; }
     }
 
 }

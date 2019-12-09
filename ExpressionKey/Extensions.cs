@@ -1,4 +1,5 @@
-﻿using ExpressionKey.Visitors;
+﻿using ExpressionKey.Comparers;
+using ExpressionKey.Visitors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -65,10 +66,11 @@ namespace ExpressionKey
 
 
         public static IEnumerable<T> SetReferences<T, V, U>(
-        this IEnumerable<T> source,
-        Expression<Func<T, V>> property,
-        IEnumerable<U> target,
-        Expression<Func<T, U, bool>> joinExpression) where V : IEnumerable<U>
+            this IEnumerable<T> source,
+            Expression<Func<T, V>> property,
+            IEnumerable<U> target,
+            Expression<Func<T, U, bool>> joinExpression,
+            KeyBuilder keyBuilder) where V : IEnumerable<U>
         {
             if (source == null || target == null)
             {
@@ -79,34 +81,44 @@ namespace ExpressionKey
             var setter = typeof(T).CreateCollectionPropertySetter<T, U>(member.Member.Name, member.Type);
 
             var collection = source as ICollection<T> ?? source.ToList();
-            var lookup = collection.ToExpressionKeyLookup(joinExpression);
+
+            //TODO see if this can be cached?
+            Expression<Func<U, T, bool>> reverseJoin = Expression.Lambda<Func<U, T, bool>>(joinExpression.Body, joinExpression.Parameters[1], joinExpression.Parameters[0]);
+            var targetLookup = target.ToExpressionKeyLookup(reverseJoin);
 
             var ifnullSetter = typeof(T).CreatePropertySetup<T, U>(member.Member.Name);
-
-            if (lookup != null)
+            if (targetLookup != null)
             {
-                foreach (var parentItem in target)
+                foreach (var parentEntity in collection)
                 {
-                    foreach (var matchingChild in lookup.GetMatches(parentItem))
+                    var existingChildEntities = ifnullSetter(parentEntity);
+
+                    var childEntities = new HashSet<U>(
+                        targetLookup.GetMatches(parentEntity),
+                        keyBuilder.GetKeyComparer<U>());
+
+                    childEntities.ExceptWith(existingChildEntities);
+                    foreach (var childEntity in childEntities)
                     {
-                        ifnullSetter(matchingChild);
-                        //set item to match.property
-                        setter(matchingChild, parentItem);
+                        setter(parentEntity, childEntity);
                     }
                 }
-            }
-            //fallback to looping through when no hashCode key can be created
-            else
-            {
-                var func = joinExpression.Compile();
-                foreach (var childItem in source)
-                {
-                    ifnullSetter(childItem);
 
-                    var matchingParent = target.FirstOrDefault(x => func(childItem, x));
+                return collection;
+            }
+
+            var func = joinExpression.Compile();
+            foreach (var childItem in collection)
+            {
+                ifnullSetter(childItem);
+
+                foreach (var matchingParent in target.Where(x => func(childItem, x)))
+                {
                     setter(childItem, matchingParent);
                 }
             }
+
+
             return collection;
         }
 
