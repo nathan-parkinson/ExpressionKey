@@ -22,6 +22,9 @@ namespace ExpressionKey
                 var paramPool = Expression.Parameter(typeof(EntityPool));
                 var param = Expression.Parameter(typeof(T), "source");
 
+
+                var builderMember = Expression.PropertyOrField(paramPool, "_keyBuilder");
+
                 var paramFuncType = typeof(Func<,>).MakeGenericType(typeof(T), fk.Member.GetMemberUnderlyingType());
                 var paramExprType = typeof(Expression<>).MakeGenericType(paramFuncType);
 
@@ -41,16 +44,24 @@ namespace ExpressionKey
                     fk.Property.Body.Type
                 };
 
+
+                MethodCallExpression setReferences = null;
                 //if IEnurmeable add another type parameter so we call the right method
                 if (fk.Property.Body.Type.IsIEnumerable())
                 {
                     typeParameters.Add(fk.Property.Body.Type.GetTypeToUse());
-                }
-
-                var setReferences = Expression.Call(typeof(Extensions), nameof(Extensions.SetReferences),
+                    setReferences = Expression.Call(typeof(Extensions), nameof(Extensions.SetReferences),
                                             typeParameters.ToArray(), entities, fk.Property, otherEntities,
-                                            fk.Expression);
+                                            fk.Expression, builderMember);
 
+                }
+                else
+                {
+
+                    setReferences = Expression.Call(typeof(Extensions), nameof(Extensions.SetReferences),
+                                                typeParameters.ToArray(), entities, fk.Property, otherEntities,
+                                                fk.Expression);
+                }
                 var lamdba = Expression.Lambda<Action<EntityPool>>(setReferences, paramPool);
                 var action = lamdba.Compile();
 

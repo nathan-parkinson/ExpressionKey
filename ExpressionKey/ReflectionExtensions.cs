@@ -112,7 +112,7 @@ namespace ExpressionKey
 
 
 
-        internal static Action<TParent> CreatePropertySetup<TParent, TChild>(this Type itemType, string propertyName)
+        internal static Func<TParent, IEnumerable<TChild>> CreatePropertySetup<TParent, TChild>(this Type itemType, string propertyName)
             //where TParent : class
             //where TChild : class
         {
@@ -151,12 +151,25 @@ namespace ExpressionKey
 
                 var @if = Expression.IfThen(isParamNull, mce);
 
-                var finalCode = Expression.Lambda<Action<TParent>>(@if, parentParam);
+                var expressions = new List<Expression>
+                {
+                    @if
+                };
 
-                return new CollectionInitializer<TParent>(finalCode.Compile());
+                var returnTarget = Expression.Label(typeof(IEnumerable<TChild>));
+                expressions.Add(Expression.Return(returnTarget, property, typeof(IEnumerable<TChild>)));
+                expressions.Add(Expression.Label(returnTarget, Expression.Constant(default(IEnumerable<TChild>), typeof(IEnumerable<TChild>))));
+
+                var block = Expression.Block(expressions);
+
+
+
+                var finalCode = Expression.Lambda<Func<TParent, IEnumerable<TChild>>>(block, parentParam);
+
+                return new CollectionInitializer<TParent, TChild>(finalCode.Compile());
             });
 
-            var typesSetter = setter as CollectionInitializer<TParent>;
+            var typesSetter = setter as CollectionInitializer<TParent, TChild>;
 
             return typesSetter?.Initializer;
         }

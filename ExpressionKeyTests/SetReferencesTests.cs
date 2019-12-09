@@ -25,7 +25,7 @@ namespace ExpressionKeyTests
             }).ToList();
 
 
-            people.SetReferences(p => p.Children, children, (p, c) => p.PersonId == c.ParentId);
+            people.SetReferences(p => p.Children, children, (p, c) => p.PersonId == c.ParentId, new Builder());
             children.SetReferences(c => c.Parent, people, (c, p) => c.ParentId == p.PersonId);
 
             Assert.IsTrue(people.All(x => x.Children.All(c => c.ParentId == x.PersonId)));
@@ -48,7 +48,7 @@ namespace ExpressionKeyTests
                 ChildId = z
             }).ToList();
 
-            people.SetReferences(p => p.Children, children, (p, c) => p.PersonId == c.ParentId);
+            people.SetReferences(p => p.Children, children, (p, c) => p.PersonId == c.ParentId, new Builder());
             Assert.IsTrue(people.All(x => x.Children.All(c => c.ParentId == x.PersonId)));
         }
 
@@ -91,12 +91,22 @@ namespace ExpressionKeyTests
             }).ToList();
 
             children.SetReferences(c => c.Order, people, (c, p) => c.OrderId == p.OrderId);
-            people.SetReferences(o => o.ProductLines, children, (o, p) => p.OrderId == o.OrderId);
+            people.SetReferences(o => o.ProductLines, children, (o, p) => p.OrderId == o.OrderId, new Builder());
 
             Assert.IsTrue(children.All(c => c.Order.OrderId == c.OrderId));
         }
 
+        public class Builder : KeyBuilder
+        {
+            public Builder()
+            {
+                AddKey<Order, int>(o => o.OrderId);
+                AddKey<ProductLine, int>(p => p.ProductLineId);
+                AddKey<Person, int>(p => p.PersonId);
+                AddKey<Child, int>(p => p.ChildId);
+            }
 
+        }
 
         public class Person
         {
