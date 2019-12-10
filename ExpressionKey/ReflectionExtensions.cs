@@ -256,5 +256,7 @@ namespace ExpressionKey
 
             return types;
         }
+
+        internal static bool IsNullable(this Type type) => (type.IsClass || Nullable.GetUnderlyingType(type) != null);
     }
 }
