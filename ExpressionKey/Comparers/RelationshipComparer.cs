@@ -16,7 +16,7 @@ namespace ExpressionKey.Comparers
             var keyExpressions = results.Item1;
             var valueExpressions = results.Item2;
 
-            if(results.Item1.Count == 0 || results.Item2.Count == 0)
+            if (results.Item1.Count == 0 || results.Item2.Count == 0)
             {
                 IsExpressionInvalid = true;
                 return;
@@ -74,7 +74,20 @@ namespace ExpressionKey.Comparers
             {
                 var exprWithNewParam = ParameterReplacer.Replace(key, oldParam, param);
 
-                expressions.Add(Expression.Call(hasherVariable, nameof(HashCode.Add), new Type[] { key.Type }, exprWithNewParam));
+                var memberExpr = MemberExtractor.ExtractSingleMember(exprWithNewParam);
+                var memberType = memberExpr.Member.GetMemberUnderlyingType();
+
+                var hashCodeAdd = Expression.Call(hasherVariable, nameof(HashCode.Add), new Type[] { key.Type }, exprWithNewParam);
+                if (memberType.IsNullable())
+                {
+                    var isNull = Expression.NotEqual(memberExpr, Expression.Constant(null, memberType));
+                    var @if = Expression.IfThen(isNull, hashCodeAdd);
+                    expressions.Add(@if);
+                }
+                else
+                {
+                    expressions.Add(hashCodeAdd);
+                }
             }
 
             var returnTarget = Expression.Label(typeof(int));
@@ -84,66 +97,15 @@ namespace ExpressionKey.Comparers
 
             var block = Expression.Block(new[] { hasherVariable }, expressions);
 
-            var lambda = Expression.Lambda<Func<T,  int>>(block, param);
+            var lambda = Expression.Lambda<Func<T, int>>(block, param);
             return lambda.Compile();
         }
-
-
-
-/*
-        private static Func<T, int> CreateHashCode<T>(IEnumerable<Expression> keys, ParameterExpression oldParam)
-        {
-            var expVar = Expression.Variable(typeof(int), "hashCode");
-            var assign = Expression.Assign(expVar, Expression.Constant(-984676295));
-
-            var type = typeof(T);
-
-            var exps = new List<Expression> { assign };
-            var expConst = Expression.Constant(-1521134295);
-            var param = Expression.Parameter(type, "param");
-
-            foreach (var key in keys)
-            {
-                var ex1 = Expression.MultiplyAssign(expVar, expConst);
-                exps.Add(ex1);
-
-                var exprWithNewParam = ParameterReplacer.Replace(key, oldParam, param) as LambdaExpression;
-
-                var getHashCode = Expression.Call(exprWithNewParam.Body, exprWithNewParam.ReturnType.GetMethod(nameof(object.GetHashCode), new Type[0]));
-
-                if (exprWithNewParam.ReturnType.IsClass)
-                {
-                    var isNotNull = Expression.NotEqual(exprWithNewParam.Body, Expression.Constant(null, exprWithNewParam.ReturnType));
-                    exps.Add(Expression.IfThen(isNotNull, Expression.AddAssign(expVar, getHashCode)));
-                }
-                else
-                {
-                    exps.Add(Expression.AddAssign(expVar, getHashCode));
-                }
-
-
-            }
-
-            var returnTarget = Expression.Label(typeof(int));
-            var returnExpression = Expression.Return(returnTarget, expVar, typeof(int));
-            var returnLabel = Expression.Label(returnTarget, Expression.Constant(0));
-            exps.Add(returnExpression);
-            exps.Add(returnLabel);
-
-            var block = Expression.Block(new List<ParameterExpression> { expVar }, exps);
-
-            var lamdba = Expression.Lambda<Func<T, int>>(block, param);
-            var func = lamdba.Compile();
-
-            return func;
-        }
-*/
 
         public Func<TKey, TKey, bool> KeyKeyMatcher { get; set; }
         public Func<TKey, TValue, bool> KeyValueMatcher { get; set; }
 
-        public Func<TKey, int> KeyHasherFunc { get;  }
-        public Func<TValue, int> ValueHasherFunc { get;  }
+        public Func<TKey, int> KeyHasherFunc { get; }
+        public Func<TValue, int> ValueHasherFunc { get; }
 
         public bool Equals(ExpressionKey<TKey, TValue> x, ExpressionKey<TKey, TValue> y)
         {
