@@ -62,8 +62,21 @@ namespace ExpressionKey.Comparers
             foreach (var key in keys)
             {
                 var exprWithNewParam = ParameterReplacer.Replace(key, key.Parameters.First(), param) as LambdaExpression;
+                var memberExpr = MemberExtractor.ExtractSingleMember(exprWithNewParam.Body);
+                var memberType = memberExpr.Member.GetMemberUnderlyingType();
 
-                expressions.Add(Expression.Call(hasherVariable, nameof(HashCode.Add), new Type[] { key.ReturnType }, exprWithNewParam.Body));
+                var hashCodeAdd = Expression.Call(hasherVariable, nameof(HashCode.Add), new Type[] { key.ReturnType }, exprWithNewParam.Body);
+                                  
+                if (memberType.IsNullable())
+                {
+                    var isNull = Expression.NotEqual(memberExpr, Expression.Constant(null, memberType));
+                    var @if = Expression.IfThen(isNull, hashCodeAdd);
+                    expressions.Add(@if);
+                }
+                else
+                {
+                    expressions.Add(hashCodeAdd);
+                }
             }
 
             var returnTarget = Expression.Label(typeof(int));
