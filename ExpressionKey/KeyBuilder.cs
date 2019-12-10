@@ -135,7 +135,8 @@ namespace ExpressionKey
 
                 return key.KeyComparer as KeyComparer<T>;
             }
-            throw new KeyNotFoundException();
+
+            return null;
         }
     }
 }
